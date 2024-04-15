@@ -99,7 +99,7 @@ extension Watch: FileDidChangeDelegate {
                 
                 do {
                     let postSlug = try filesHelper.postSlug(for: file)
-                    if let post = try DataStore.shared.getPost(by: postSlug) {
+                    if let post = DataStore.shared.getPost(by: postSlug) {
                         try DataStore.shared.delete(post)
                     }
                 }

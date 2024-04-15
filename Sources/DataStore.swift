@@ -128,10 +128,10 @@ public class DataStore {
         try connection.run(postToDelete.delete())
     }
     
-    public func getPost(by slug: String) throws -> Post? {
+    public func getPost(by slug: String) -> Post? {
         let postsQuery = postsTable.where(slugColumn == slug)
         // TODO: Join topics
-        return try connection.prepare(postsQuery).map { row in
+        return try? connection.prepare(postsQuery).map { row in
             return try row.decode() as Post
         }.first
     }
@@ -152,9 +152,9 @@ public class DataStore {
         try connection.run(topicToDelete.delete())
     }
     
-    public func getTopic(by slug: String) throws -> Topic? {
+    public func getTopic(by slug: String) -> Topic? {
         let topicsQuery = topicsTable.where(slugColumn == slug)
-        return try connection.prepare(topicsQuery).map { row in
+        return try? connection.prepare(topicsQuery).map { row in
             return try row.decode() as Topic
         }.first
     }
