@@ -1,0 +1,51 @@
+{
+  "originHash" : "e3b04c419ef343b343e79c51a9e03ca6815cc85a5b73674c6e5d8eb1d2617181",
+  "pins" : [
+    {
+      "identity" : "filemonitor",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/aus-der-Technik/FileMonitor.git",
+      "state" : {
+        "revision" : "0cfe5bd5842d6e83df173c454354eac6b6fd1f08",
+        "version" : "1.1.0"
+      }
+    },
+    {
+      "identity" : "ink",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnsundell/ink.git",
+      "state" : {
+        "revision" : "bcc9f219900a62c4210e6db726035d7f03ae757b",
+        "version" : "0.6.0"
+      }
+    },
+    {
+      "identity" : "sqlite.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/stephencelis/SQLite.swift.git",
+      "state" : {
+        "revision" : "f0af5e0a2b6917ae38e3019e3456fd0fa9365864",
+        "version" : "0.15.1"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "46989693916f56d1186bd59ac15124caef896560",
+        "version" : "1.3.1"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log.git",
+      "state" : {
+        "revision" : "e97a6fcb1ab07462881ac165fdbb37f067e205d5",
+        "version" : "1.5.4"
+      }
+    }
+  ],
+  "version" : 3
+}
