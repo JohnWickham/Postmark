@@ -1,5 +1,5 @@
 {
-  "originHash" : "e3b04c419ef343b343e79c51a9e03ca6815cc85a5b73674c6e5d8eb1d2617181",
+  "originHash" : "04cdb7ed688f4fc714cf58f92a12a5e3d7452a77e25ac26063dc414f996b93c1",
   "pins" : [
     {
       "identity" : "filemonitor",
@@ -35,6 +35,15 @@
       "state" : {
         "revision" : "46989693916f56d1186bd59ac15124caef896560",
         "version" : "1.3.1"
+      }
+    },
+    {
+      "identity" : "swift-html-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rnantes/swift-html-parser.git",
+      "state" : {
+        "revision" : "fdc7c20fe62c0a0a846cca05f89fd3dc0fe6112a",
+        "version" : "1.0.0"
       }
     },
     {

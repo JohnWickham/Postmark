@@ -56,11 +56,11 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--content-directory /Users/John/Projects/Posts/tests/content-directory/"
+            argument = "--content-directory /Users/john/Projects/Posts/tests/content-directory/"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--database-file-path /Users/John/Projects/Posts/tests/store.sqlite"
+            argument = "--database-file-path /Users/john/Projects/Posts/tests/store.sqlite"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

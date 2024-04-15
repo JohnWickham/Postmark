@@ -7,6 +7,10 @@
 
 import Foundation
 
+enum StaticContentGenerationError: Error {
+    case noContentSourceFile(inDirectory: URL)
+}
+
 public struct StaticContentGenerator {
     
     public let contentDirectory: URL
@@ -15,16 +19,30 @@ public struct StaticContentGenerator {
         Log.shared.trace("Generating static content for post: \(post.slug)")
         
         let postFilesHelper = PostFilesHelper(contentDirectoryURL: contentDirectory)
-        let staticContentFilePath = fileURLForIndexHTMLFile(for: post)
-        let contentSourceFilePath = postFilesHelper.getContentSourceFile(forPostWith: post.slug)
-        let markdownFile = MarkdownFile(fileURL: contentSourceFilePath)
+        let staticContentFilePath = postFilesHelper.makeStaticContentFileURL(forPostWith: post.slug)
         
         do {
-            if overwriteExisting,
-               FileManager.default.fileExists(atPath: staticContentFilePath.path),
-               FileManager.default.isDeletableFile(atPath: staticContentFilePath.path) {
-                Log.shared.trace("Deleting static content file: \(staticContentFilePath.path())")
-                try FileManager.default.removeItem(at: staticContentFilePath)
+            guard let contentSourceFilePath = postFilesHelper.getContentSourceFile(forPostWith: post.slug) else {
+                throw StaticContentGenerationError.noContentSourceFile(inDirectory: contentDirectory)
+            }
+            let markdownFile = MarkdownFile(fileURL: contentSourceFilePath)
+            
+            if FileManager.default.fileExists(atPath: staticContentFilePath.path) {
+                
+                let canDeleteFile = FileManager.default.isDeletableFile(atPath: staticContentFilePath.path)
+                
+                if overwriteExisting && canDeleteFile {
+                    Log.shared.trace("Deleting static content file: \(staticContentFilePath.path())")
+                    try FileManager.default.removeItem(at: staticContentFilePath)
+                }
+                else if overwriteExisting && !canDeleteFile {
+                    Log.shared.error("Existing static content file could not be deleted. Nothing will be generated.")
+                    return
+                }
+                else {
+                    Log.shared.trace("Static content file already exists, but generator was told not to overwrite. Nothing will be generated.")
+                    return
+                }
             }
             
             Log.shared.trace("Writing markup to file: \(staticContentFilePath)")
@@ -38,18 +56,4 @@ public struct StaticContentGenerator {
             Log.shared.error("Error while generating static content for post: \(error.localizedDescription)")
         }
     }
-    
-    private func fileURLForIndexHTMLFile(for post: Post) -> URL {
-        return contentDirectory.appending(path: post.slug, directoryHint: .isDirectory).appendingPathComponent("\(post.slug).html", isDirectory: false)
-    }
-    
-    // Get the template HTML file
-    // Parse Markdown source file
-    // Generate HTML from Markdown source
-    // Perform syntax highlighting on parsed Markdown content
-    // Substitute resulting markup into the template file
-    // if overwritingExisting, delete existing index.html file
-    // Write the resulting HTML file to index.html
-    // Update the database entry for the post to indicate that static content has been generated
-    
 }

@@ -8,8 +8,10 @@
 import Foundation
 
 enum PostFileAnalysisError: Error {
-    case notADirectory(_ url: URL)
-    case noCreationDate(directory: URL)
+    case notADirectory(path: String)
+    case noCreationDate(path: String)
+    case noContentSourceFile(inDirectory: URL)
+    case noSuitableSlug(forDirectory: URL)
 }
 
 public class Post: Codable {
@@ -32,19 +34,72 @@ public class Post: Codable {
     /* Initializes a Post describing the given content directory. */
     init(describing directory: URL) throws {
         guard directory.isDirectory else {
-            throw PostFileAnalysisError.notADirectory(directory)
+            throw PostFileAnalysisError.notADirectory(path: directory.path)
         }
         
-        let fileManager = FileManager()
-        let directoryAttributes = try fileManager.attributesOfItem(atPath: directory.path)
-        
-        guard let directoryCreationDate = directoryAttributes[FileAttributeKey.creationDate] as? Date else {
-            throw PostFileAnalysisError.noCreationDate(directory: directory)
+        let parentDirectory = directory.deletingLastPathComponent()
+        let filesHelper = PostFilesHelper(contentDirectoryURL: parentDirectory)
+        guard let contentSourceFileURL = filesHelper.getContentSourceFile(forPostAt: directory) else {
+            throw PostFileAnalysisError.noContentSourceFile(inDirectory: directory)
         }
         
-        self.slug = directory.lastPathComponent
-        self.title = "Example Post Title" // TODO: Initialize the title by parsing the Markdown source file and selecting the first heading
-        self.createdDate = directoryCreationDate
-//        self.topics = [] // TODO: Initialize topics by parsing the post's meta file and querying Topics
+        let sourceFileAttributes = try FileManager.default.attributesOfItem(atPath: contentSourceFileURL.path)
+        guard let sourceFileCreationDate = sourceFileAttributes[FileAttributeKey.creationDate] as? Date else {
+            throw PostFileAnalysisError.noCreationDate(path: directory.path)
+        }
+        
+        if let staticContentFile = filesHelper.makeStaticContentFileURL(forPostAt: directory),
+           FileManager.default.fileExists(atPath: staticContentFile.path) {
+            self.hasGeneratedContent = true
+        }
+        
+        let sourceFileUpdatedDate = sourceFileAttributes[FileAttributeKey.modificationDate] as? Date
+        
+        let markdownFile = MarkdownFile(fileURL: contentSourceFileURL)
+        
+        guard let slug = try? filesHelper.postSlug(for: directory) else {
+            throw PostFileAnalysisError.noSuitableSlug(forDirectory: directory)
+        }
+        
+        self.slug = slug
+        self.title = markdownFile.parsedContent?.title ?? "Untitled"
+        self.createdDate = sourceFileCreationDate
+        self.updatedDate = sourceFileUpdatedDate
+        self.previewContent = markdownFile.truncatedBodyContent
+        
+        parseMetadata(from: markdownFile)
+    }
+    
+    // Initialize properties by reading metadata from the header of the post's source content Markdown file
+    private func parseMetadata(from markdownFile: MarkdownFile) {
+        let metadata = markdownFile.metadata
+        
+        if let title = metadata?["title"] {
+            self.title = title
+        }
+        
+        if let createdDateString = metadata?["created"],
+           let createdDate = dateFrom(createdDateString) {
+            self.createdDate = createdDate
+        }
+        
+        if let updatedDateString = metadata?["updated"],
+           let updatedDate = dateFrom(updatedDateString) {
+            self.updatedDate = updatedDate
+        }
+        
+        if let previewContent = metadata?["preview"] {
+            self.previewContent = previewContent
+        }
+    }
+    
+    // Parse a date string formatted as Year-Month-Day
+    private func dateFrom(_ string: String?) -> Date? {
+        guard let string = string else {
+            return nil
+        }
+        
+        let dateFormatStyle = Date.FormatStyle().year().month().day()
+        return try? dateFormatStyle.parse(string)
     }
 }

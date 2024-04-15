@@ -23,28 +23,21 @@ struct PostFilesHelper {
         }
         
         // 2. It's a direct child of the content directory
-        let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardized, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey])
+        let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardized, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants])
         
-        guard contentDirectoryContents.contains(fileURL) else {
+        guard contentDirectoryContents.contains(fileURL.standardized) else {
             Log.shared.debug("Directory is not in the content directory: \(fileURL)")
             return false
         }
         
-        // 3. It contains a Markdown file at its top level
-        let contents = try FileManager.default.contentsOfDirectory(at: fileURL.standardized, includingPropertiesForKeys: nil)
-        let containsMarkdownFile = contents.contains { filePath in
-            let fileURL = URL(fileURLWithPath: filePath.standardized.path)
-            return fileURL.pathExtension == "md"
-        }
-        
-        if !containsMarkdownFile {
+        // 3. It contains a Markdown file
+        if firstMarkdownFile(in: fileURL.standardized) == nil {
             Log.shared.debug("Directory does not contain a Markdown file: \(fileURL)")
+            return false
         }
         
-        return containsMarkdownFile
+        return true
     }
-    
-    // TODO: Add function to get post folder by slug
     
     func postSlug(for postDirectory: URL) throws -> String {
         let postDirectoryName = postDirectory.lastPathComponent
@@ -60,17 +53,6 @@ struct PostFilesHelper {
         return UUID().uuidString
     }
     
-    /* Whether a URL is a post's meta JSON file. */
-    func isPostMetaFile(fileURL: URL) throws -> Bool {
-        let parentDirectory = fileURL.deletingLastPathComponent()
-        let isParentPostFolder = try isPostFolder(parentDirectory)
-        return isParentPostFolder && fileURL.lastPathComponent == "meta.json"
-    }
-    
-    func getMetaFile(forPostWith slug: String) -> URL {
-        return contentDirectoryURL.appending(path: slug, directoryHint: .isDirectory).appendingPathComponent("meta", conformingTo: .json)
-    }
-    
     /* Whether a URL is a post's source Markdown file. */
     func isPostSourceContentFile(fileURL: URL) throws -> Bool {
         let parentDirectory = fileURL.deletingLastPathComponent()
@@ -78,15 +60,55 @@ struct PostFilesHelper {
         return isParentPostFolder && fileURL.pathExtension == "md"
     }
     
-    func getContentSourceFile(forPostWith slug: String) -> URL {
-        return contentDirectoryURL.appending(path: slug, directoryHint: .isDirectory).appendingPathComponent("\(slug).md")
+    // Finds the first accessible file of type "md" in the given URL, or none
+    private func firstMarkdownFile(in directory: URL) -> URL? {
+        guard directory.isDirectory else {
+            Log.shared.trace("Can't find a markdown file in URL that is not a directory: \(directory)")
+            return nil
+        }
+        
+        let contents = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.isRegularFileKey, .localizedNameKey], options: [.skipsHiddenFiles, .skipsPackageDescendants])
+        return contents?.first { fileURL in
+            fileURL.path.hasSuffix(".md") && FileManager.default.isReadableFile(atPath: fileURL.path)
+        }
+    }
+    
+    // Returns nil if no readable content source file exists
+    public func getContentSourceFile(forPostAt postURL: URL) -> URL? {
+        do {
+            if try isPostFolder(postURL) {
+                return firstMarkdownFile(in: postURL)
+            }
+            else {
+                Log.shared.debug("Requested content source file from directory that is not a post: \(postURL)")
+            }
+        }
+        catch {
+            Log.shared.error("Error determining whether directory is a post: \(error.localizedDescription)")
+        }
+        
+        return nil
+    }
+    
+    // Returns nil if no readable content source file exists
+    public func getContentSourceFile(forPostWith slug: String) -> URL? {
+        let postDirectoryURL = contentDirectoryURL.appending(path: slug, directoryHint: .isDirectory)
+        return getContentSourceFile(forPostAt: postDirectoryURL)
+    }
+    
+    public func makeStaticContentFileURL(forPostAt postURL: URL) -> URL? {
+        return postURL.appendingPathComponent("index.html")
+    }
+    
+    public func makeStaticContentFileURL(forPostWith slug: String) -> URL {
+        return contentDirectoryURL.appending(path: slug, directoryHint: .isDirectory).appendingPathComponent("\(slug).html")
     }
     
     /* Every directory in the content directory containing a Markdown file. */
     public var postDirectories: [URL] {
         do {
-            let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardized, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey])
-            Log.shared.debug("Found items in content directory: \(contentDirectoryContents.debugDescription)")
+            let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardized, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants])
+            Log.shared.debug("Found \(contentDirectoryContents.count) items in content directory: \(contentDirectoryContents.debugDescription)")
             return contentDirectoryContents.filter { return (try? isPostFolder($0)) ?? false }
         }
         catch {

@@ -20,6 +20,7 @@ public class Topic: Codable {
 
 public class DataStore {
     
+    // TODO: How can we create the shared singleton instance by providing the database file URL?
     public static let shared: DataStore = DataStore()
     
     private init() {

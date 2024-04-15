@@ -9,6 +9,8 @@ struct CMSService: ParsableCommand {
 
 struct Watch: ParsableCommand {
     
+    static var configuration = CommandConfiguration(abstract: "Watch a given directory for changes and automatically generate static content and update database entries as appropriate.")
+    
     @Option(help: "The directory to monitor for changes in. Defaults to the current directory.")
     var contentDirectory: String = FileManager.default.currentDirectoryPath
     
@@ -20,7 +22,7 @@ struct Watch: ParsableCommand {
     var databaseFilePath: String = "store.sqlite"
   
     public func run() {
-        let databaseFileURL = URL(fileURLWithPath: databaseFilePath, relativeTo: URL(string: FileManager().currentDirectoryPath))
+        let databaseFileURL = URL(fileURLWithPath: databaseFilePath, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
       
         do {
             try DataStore.shared.open(databaseFile: databaseFileURL)
@@ -50,64 +52,61 @@ extension Watch: FileDidChangeDelegate {
             case .added(let file):
                 
                 guard let isPostFolder = try? filesHelper.isPostFolder(file),
-                let isPostMetaFile = try? filesHelper.isPostMetaFile(fileURL: file) else {
+                let isPostSourceFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
                     Log.shared.warning("A file was added, but an error was thrown evalutating whether it was a post folder or post meta file. Nothing will be done about this change.")
                     return
                 }
                 
-                if file.isDirectory || isPostFolder || isPostMetaFile {
-                    let newPost = try Post(describing: file)
-                    try DataStore.shared.addOrUpdate(newPost)
-                    staticGenerator.generateStaticContent(for: newPost)
-                    Log.shared.debug("New post folder or post meta file was added.")
+                guard file.isDirectory || isPostFolder || isPostSourceFile else {
+                    return
                 }
                 
+                let newPost = try Post(describing: file)
+                try DataStore.shared.addOrUpdate(newPost)
+                staticGenerator.generateStaticContent(for: newPost)
+                Log.shared.debug("New post folder or post meta file was added.")
+                
             case .changed(let file):
-                
-                // TODO: If a post's directory changes, can we tell what the old and new slugs were to update its database entry?
-                
-                guard let isPostMetaFile = try? filesHelper.isPostMetaFile(fileURL: file),
-                      let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
-                    Log.shared.warning("A file was changed, but an error was thrown when evalutaing whether it was a post meta file or post source content file. Nothing will be done about this change.")
+                                
+                guard let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
+                    Log.shared.warning("A file was changed, but an error was thrown when evalutaing whether it was a post source content file. Nothing will be done about this change.")
                     return
                 }
 
-                if isPostMetaFile || isPostSourceContentFile {
-                    let updatedPost = try Post(describing: file)
-                    try DataStore.shared.addOrUpdate(updatedPost)
-                    staticGenerator.generateStaticContent(for: updatedPost)
-                    Log.shared.debug("Post meta file or source content file was changed.")
+                guard isPostSourceContentFile else {
+                    return
                 }
+                
+                let updatedPost = try Post(describing: file)
+                try DataStore.shared.addOrUpdate(updatedPost)
+                staticGenerator.generateStaticContent(for: updatedPost)
+                Log.shared.debug("Post source content file was changed.")
                 
             case .deleted(let file):
                 
                 guard let isPostFolder = try? filesHelper.isPostFolder(file),
-                let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file),
-                      let isPostMetaFile = try? filesHelper.isPostMetaFile(fileURL: file) else {
-                    // TODO: Log this error
+                let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
+                    Log.shared.warning("A file was changed, but an error was thrown evaluating whether it was a post folder or source content file. Nothing will be done about this change.")
                     return
                 }
                 
-                if isPostFolder || isPostSourceContentFile {
-                    // If the deleted file is a post's folder or its Markdown source file, remove its manifest entry. If the deleted file is a post's meta file, regenerate its manifest entry.
-                    Log.shared.debug("Post folder or source content file was deleted.")
-                    
-                    do {
-                        let postSlug = try filesHelper.postSlug(for: file)
-                        if let post = try DataStore.shared.getPost(by: postSlug) {
-                            try DataStore.shared.delete(post)
-                        }
-                    }
-                    catch {
-                        // TODO: Test whether this works haha
-                        Log.shared.error("Couldn't delete database entry for a post. Regenerating database.")
-                        Regenerate(contentDirectory: contentDirectory).run()
+                guard isPostFolder || isPostSourceContentFile else {
+                    return
+                }
+                
+                // If the deleted file is a post's folder or its Markdown source file, remove its manifest entry. If the deleted file is a post's meta file, regenerate its manifest entry.
+                Log.shared.debug("Post folder or source content file was deleted.")
+                
+                do {
+                    let postSlug = try filesHelper.postSlug(for: file)
+                    if let post = try DataStore.shared.getPost(by: postSlug) {
+                        try DataStore.shared.delete(post)
                     }
                 }
-                else if isPostMetaFile {
-                    Log.shared.debug("Post meta file was deleted.")
-                    let post = try Post(describing: file)
-                    try DataStore.shared.addOrUpdate(post)
+                catch {
+                    // TODO: Test whether this works haha
+                    Log.shared.error("Couldn't delete database entry for a post. Regenerating database.")
+                    Regenerate(contentDirectory: contentDirectory).run()
                 }
             }
         }
@@ -119,6 +118,8 @@ extension Watch: FileDidChangeDelegate {
 }
 
 struct Regenerate: ParsableCommand {
+    
+    static var configuration = CommandConfiguration(abstract: "Regenerate all static content and database records for content in a given dirctory.")
         
     @Option(help: "The directory to monitor for changes in. Defaults to the current directory.")
     var contentDirectory: String = FileManager.default.currentDirectoryPath
@@ -136,7 +137,7 @@ struct Regenerate: ParsableCommand {
     public func run() {
         let fileHelper = PostFilesHelper(contentDirectoryURL: contentDirectoryURL)
         
-        let databaseFileURL = URL(fileURLWithPath: databaseFilePath, relativeTo: URL(string: FileManager().currentDirectoryPath))
+        let databaseFileURL = URL(fileURLWithPath: databaseFilePath, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
         
         do {
             try DataStore.shared.open(databaseFile: databaseFileURL.standardized)
