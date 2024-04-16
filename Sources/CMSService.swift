@@ -63,7 +63,6 @@ extension Watch: FileDidChangeDelegate {
                 
                 let newPost = try Post(describing: file)
                 try DataStore.shared.addOrUpdate(newPost)
-                staticGenerator.generateStaticContent(for: newPost)
                 Log.shared.debug("New post folder or post meta file was added.")
                 
             case .changed(let file):

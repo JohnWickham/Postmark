@@ -1,5 +1,5 @@
 {
-  "originHash" : "04cdb7ed688f4fc714cf58f92a12a5e3d7452a77e25ac26063dc414f996b93c1",
+  "originHash" : "7765b9411b88b7d83cbfa15ad5b2105558e265ececc662e4f33f7e4721024e1c",
   "pins" : [
     {
       "identity" : "filemonitor",
@@ -38,21 +38,21 @@
       }
     },
     {
-      "identity" : "swift-html-parser",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/rnantes/swift-html-parser.git",
-      "state" : {
-        "revision" : "fdc7c20fe62c0a0a846cca05f89fd3dc0fe6112a",
-        "version" : "1.0.0"
-      }
-    },
-    {
       "identity" : "swift-log",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-log.git",
       "state" : {
         "revision" : "e97a6fcb1ab07462881ac165fdbb37f067e205d5",
         "version" : "1.5.4"
+      }
+    },
+    {
+      "identity" : "swiftsoup",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/scinfu/SwiftSoup.git",
+      "state" : {
+        "revision" : "028487d4a8a291b2fe1b4392b5425b6172056148",
+        "version" : "2.7.2"
       }
     }
   ],

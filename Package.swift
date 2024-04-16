@@ -14,7 +14,7 @@ let package = Package(
         .package(url: "https://github.com/aus-der-Technik/FileMonitor.git", from: "1.1.0"),
         .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.15.1"),
         .package(url: "https://github.com/johnsundell/ink.git", from: "0.1.0"),
-        .package(url: "https://github.com/rnantes/swift-html-parser.git", from: "1.0.0")
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -25,7 +25,7 @@ let package = Package(
             .product(name: "FileMonitor", package: "filemonitor"),
             .product(name: "SQLite", package: "SQLite.swift"),
             .product(name: "Ink", package: "ink"),
-            .product(name: "SwiftHTMLParser", package: "swift-html-parser")
+            .product(name: "SwiftSoup", package: "SwiftSoup")
         ]),
     ]
 )

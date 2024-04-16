@@ -7,9 +7,9 @@
 
 import Foundation
 import Ink
-import SwiftHTMLParser
+import SwiftSoup
 
-struct MarkdownFile {
+public struct MarkdownFile {
     
     let fileURL: URL
     
@@ -32,30 +32,45 @@ struct MarkdownFile {
         return parsedContent?.metadata
     }
     
-    public var markupRepresentation: String? {
+    public func markupRepresentation(strippingFirstHeadingElement: Bool = true) -> String? {
         // TODO: Perform syntax highlighting
-        return parsedContent?.html
-    }
-    
-    // Finds the first paragraph or span element in the parsed markdup document
-    public var bodyContent: String? {
-        guard let markupRepresentation = markupRepresentation,
-              let nodeTree = try? HTMLParser.parse(markupRepresentation) else {
+        guard let parsedMarkup = parsedContent?.html else {
             return nil
         }
         
-        let nodeSelectors = [ElementSelector().withTagName("p"), ElementSelector().withTagName("span")]
-        let matchingElements = HTMLTraverser.findElements(in: nodeTree, matching: nodeSelectors)
-        return matchingElements.first?.textNodes.first?.text
+        do {
+            let markupDocument = try SwiftSoup.parseBodyFragment(parsedMarkup)
+            if let firstHeadingElement = try markupDocument.select("h1").first {
+                try markupDocument.body()?.removeChild(firstHeadingElement)
+            }
+            
+            return try markupDocument.body()?.html()
+            
+        }
+        catch {
+            Log.shared.error("Failed to parse markup for document: \(error)")
+        }
+        
+        return nil
     }
     
     // The text content of the first paragraph or span element in the parsed markup, truncated to 30 words.
     public var truncatedBodyContent: String? {
-        guard let bodyContent = bodyContent else {
+        guard let markupRepresentation = markupRepresentation() else {
             return nil
         }
         
-        return bodyContent.split(separator: " ").prefix(upTo: 31).joined(separator: " ")
+        do {
+            let markupDocument = try SwiftSoup.parse(markupRepresentation)
+            let firstParagraphElement = try markupDocument.select("p").first
+            let bodyContent = try firstParagraphElement?.text(trimAndNormaliseWhitespace: true)
+            return bodyContent?.leadingWords(30)
+        }
+        catch {
+            Log.shared.error("Couldn't find suitable body content in document markup.")
+            return nil
+        }
+        
     }
     
 }

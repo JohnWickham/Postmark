@@ -15,6 +15,7 @@ public struct StaticContentGenerator {
     
     public let contentDirectory: URL
     
+    // public func generateStaticContent(from markdownFile: MarkdownFile, for post: Post, in postDirectory: URL, overwriteExisting: Bool = true) {
     public func generateStaticContent(for post: Post, overwriteExisting: Bool = true) {
         Log.shared.trace("Generating static content for post: \(post.slug)")
         
@@ -46,7 +47,7 @@ public struct StaticContentGenerator {
             }
             
             Log.shared.trace("Writing markup to file: \(staticContentFilePath)")
-            try markdownFile.markupRepresentation?.write(to: staticContentFilePath, atomically: true, encoding: .utf8)
+            try markdownFile.markupRepresentation()?.write(to: staticContentFilePath, atomically: true, encoding: .utf8)
             
             post.hasGeneratedContent = true
             try DataStore.shared.addOrUpdate(post)

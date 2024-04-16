@@ -66,6 +66,7 @@ public class Post: Codable {
         self.createdDate = sourceFileCreationDate
         self.updatedDate = sourceFileUpdatedDate
         self.previewContent = markdownFile.truncatedBodyContent
+        Log.shared.debug("Initialized Post with preview content: \(String(describing: previewContent))")
         
         parseMetadata(from: markdownFile)
     }

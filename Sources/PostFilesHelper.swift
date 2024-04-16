@@ -101,7 +101,7 @@ struct PostFilesHelper {
     }
     
     public func makeStaticContentFileURL(forPostWith slug: String) -> URL {
-        return contentDirectoryURL.appending(path: slug, directoryHint: .isDirectory).appendingPathComponent("\(slug).html")
+        return contentDirectoryURL.appending(path: slug, directoryHint: .isDirectory).appendingPathComponent("index.html")
     }
     
     /* Every directory in the content directory containing a Markdown file. */
