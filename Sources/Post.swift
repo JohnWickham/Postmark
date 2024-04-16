@@ -32,10 +32,8 @@ public class Post: Codable {
     }
     
     /* Initializes a Post describing the given content directory. */
-    init(describing directory: URL) throws {
-        guard directory.isDirectory else {
-            throw PostFileAnalysisError.notADirectory(path: directory.path)
-        }
+    init(describing directory: URL, markdownFile: MarkdownFile?) throws {
+        // TODO: Validate that the directory is a proper post directory
         
         let parentDirectory = directory.deletingLastPathComponent()
         let filesHelper = PostFilesHelper(contentDirectoryURL: parentDirectory)
@@ -54,26 +52,24 @@ public class Post: Codable {
         }
         
         let sourceFileUpdatedDate = sourceFileAttributes[FileAttributeKey.modificationDate] as? Date
-        
-        let markdownFile = MarkdownFile(fileURL: contentSourceFileURL)
-        
+                
         guard let slug = try? filesHelper.postSlug(for: directory) else {
             throw PostFileAnalysisError.noSuitableSlug(forDirectory: directory)
         }
         
         self.slug = slug
-        self.title = markdownFile.parsedContent?.title ?? "Untitled"
+        self.title = markdownFile?.parsedContent?.title ?? "Untitled"
         self.createdDate = sourceFileCreationDate
         self.updatedDate = sourceFileUpdatedDate
-        self.previewContent = markdownFile.truncatedBodyContent
+        self.previewContent = markdownFile?.truncatedBodyContent
         Log.shared.debug("Initialized Post with preview content: \(String(describing: previewContent))")
         
         parseMetadata(from: markdownFile)
     }
     
     // Initialize properties by reading metadata from the header of the post's source content Markdown file
-    private func parseMetadata(from markdownFile: MarkdownFile) {
-        let metadata = markdownFile.metadata
+    private func parseMetadata(from markdownFile: MarkdownFile?) {
+        let metadata = markdownFile?.metadata
         
         if let title = metadata?["title"] {
             self.title = title

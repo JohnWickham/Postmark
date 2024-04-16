@@ -13,6 +13,14 @@ struct PostFilesHelper {
     
     private static let slugSafeCharacters = CharacterSet(charactersIn: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-")
     
+    func getContainingDirectory(for file: URL) -> URL? {
+        let parent = file.deletingLastPathComponent()
+        guard parent.isDirectory else {
+            return nil
+        }
+        return parent
+    }
+    
     /* Whether a URL is a directory that represents a post. */
     func isPostFolder(_ fileURL: URL) throws -> Bool {
         
@@ -41,7 +49,7 @@ struct PostFilesHelper {
     
     func postSlug(for postDirectory: URL) throws -> String {
         let postDirectoryName = postDirectory.lastPathComponent
-        if let latin = postDirectoryName.applyingTransform(StringTransform("Any-Latin; Latin-ASCII; Lower;"), reverse: false) {
+        if let latin = postDirectoryName.applyingTransform(StringTransform("Any-Latin; Latin-ASCII;"), reverse: false) {
             let urlComponents = latin.components(separatedBy: PostFilesHelper.slugSafeCharacters.inverted)
             let result = urlComponents.filter { $0 != "" }.joined(separator: "-")
 

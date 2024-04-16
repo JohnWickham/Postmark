@@ -45,72 +45,82 @@ extension Watch: FileDidChangeDelegate {
     
     func fileDidChanged(event: FileChange) {
         let filesHelper = PostFilesHelper(contentDirectoryURL: contentDirectoryURL)
-        let staticGenerator = StaticContentGenerator(contentDirectory: contentDirectoryURL)
         
-        do {
-            switch event {
-            case .added(let file):
-                
-                guard let isPostFolder = try? filesHelper.isPostFolder(file),
-                let isPostSourceFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
-                    Log.shared.warning("A file was added, but an error was thrown evalutating whether it was a post folder or post meta file. Nothing will be done about this change.")
-                    return
-                }
-                
-                guard file.isDirectory || isPostFolder || isPostSourceFile else {
-                    return
-                }
-                
-                let newPost = try Post(describing: file)
-                try DataStore.shared.addOrUpdate(newPost)
-                Log.shared.debug("New post folder or post meta file was added.")
-                
-            case .changed(let file):
-                                
-                guard let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
-                    Log.shared.warning("A file was changed, but an error was thrown when evalutaing whether it was a post source content file. Nothing will be done about this change.")
-                    return
-                }
-
-                guard isPostSourceContentFile else {
-                    return
-                }
-                
-                let updatedPost = try Post(describing: file)
-                try DataStore.shared.addOrUpdate(updatedPost)
-                staticGenerator.generateStaticContent(for: updatedPost)
-                Log.shared.debug("Post source content file was changed.")
-                
-            case .deleted(let file):
-                
-                guard let isPostFolder = try? filesHelper.isPostFolder(file),
-                let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
-                    Log.shared.warning("A file was changed, but an error was thrown evaluating whether it was a post folder or source content file. Nothing will be done about this change.")
-                    return
-                }
-                
-                guard isPostFolder || isPostSourceContentFile else {
-                    return
-                }
-                
-                // If the deleted file is a post's folder or its Markdown source file, remove its manifest entry. If the deleted file is a post's meta file, regenerate its manifest entry.
-                Log.shared.debug("Post folder or source content file was deleted.")
-                
+        switch event {
+        case .added(let file):
+            
+            guard let isPostFolder = try? filesHelper.isPostFolder(file),
+            let isPostSourceFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
+                Log.shared.warning("A file was added, but an error was thrown evalutating whether it was a post folder or post meta file. Nothing will be done about this change.")
+                return
+            }
+            
+            guard isPostFolder || isPostSourceFile else {
+                return
+            }
+            
+            Log.shared.debug("New post folder or post source content file was added.")
+            
+            if let postDirectory = isPostFolder ? file : filesHelper.getContainingDirectory(for: file) {
                 do {
-                    let postSlug = try filesHelper.postSlug(for: file)
-                    if let post = DataStore.shared.getPost(by: postSlug) {
-                        try DataStore.shared.delete(post)
-                    }
+                    let postProcessor = try PostProcessor(postDirectory: postDirectory, in: contentDirectoryURL)
+                    try postProcessor.process()
                 }
                 catch {
-                    // TODO: Test whether this works haha
-                    Log.shared.error("Couldn't delete database entry for a post. Regenerating database.")
-                    Regenerate(contentDirectory: contentDirectory).run()
+                    Log.shared.error("Error processing post: \(error.localizedDescription). Post: \(file)")
                 }
             }
-        }
-        catch {
-            Log.shared.debug("Error handling file changes: \(error.localizedDescription)")
+            
+        case .changed(let file):
+                            
+            guard let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
+                Log.shared.warning("A file was changed, but an error was thrown when evalutaing whether it was a post source content file. Nothing will be done about this change.")
+                return
+            }
+
+            guard isPostSourceContentFile else {
+                return
+            }
+            
+            Log.shared.debug("Post source content file was changed.")
+            
+            if let postDirectory = filesHelper.getContainingDirectory(for: file) {
+                do {
+                    let postProcessor = try PostProcessor(postDirectory: postDirectory, in: contentDirectoryURL)
+                    try postProcessor.process()
+                }
+                catch {
+                    Log.shared.error("Error processing post: \(error.localizedDescription). Post: \(file)")
+                }
+            }
+            
+        case .deleted(let file):
+            
+            // If the deleted file is a post's folder or its Markdown source file, remove it from the database.
+            
+            guard let isPostFolder = try? filesHelper.isPostFolder(file),
+            let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
+                Log.shared.warning("A file was changed, but an error was thrown evaluating whether it was a post folder or source content file. Nothing will be done about this change.")
+                return
+            }
+            
+            guard isPostFolder || isPostSourceContentFile else {
+                return
+            }
+            
+            Log.shared.debug("Post folder or source content file was deleted.")
+            
+            do {
+                let postSlug = try filesHelper.postSlug(for: file)
+                if let post = DataStore.shared.getPost(by: postSlug) {
+                    try DataStore.shared.delete(post)
+                }
+            }
+            catch {
+                // TODO: Test whether this works haha
+                Log.shared.error("Couldn't delete database entry for a post. Regenerating database.")
+                Regenerate(contentDirectory: contentDirectory).run()
+            }
         }
     }
     
@@ -136,6 +146,8 @@ struct Regenerate: ParsableCommand {
     public func run() {
         let fileHelper = PostFilesHelper(contentDirectoryURL: contentDirectoryURL)
         
+        // TODO: Implement the dryRun option
+        
         let databaseFileURL = URL(fileURLWithPath: databaseFilePath, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
         
         do {
@@ -145,14 +157,13 @@ struct Regenerate: ParsableCommand {
             let allPostDirectories = fileHelper.postDirectories
             Log.shared.debug("Found post directories: \(allPostDirectories)")
             for directory in allPostDirectories {
-                guard let post = try? Post(describing: directory) else {
-                    Log.shared.error("A Post could not be derived from a post directory: \(directory.path)")
-                    continue
+                do {
+                    let postProcessor = try PostProcessor(postDirectory: directory, in: contentDirectoryURL)
+                    try postProcessor.process()
                 }
-                
-                Log.shared.debug("Adding post to database: \(post.slug)")
-                try DataStore.shared.addOrUpdate(post)
-                StaticContentGenerator(contentDirectory: contentDirectoryURL.standardized).generateStaticContent(for: post)
+                catch {
+                    Log.shared.error("Error processing post: \(error.localizedDescription). Post: \(directory)")
+                }
             }
 
         }

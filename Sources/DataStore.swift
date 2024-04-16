@@ -100,6 +100,7 @@ public class DataStore {
     
     /* Updates a Post, inserting if it does not exist. */
     public func addOrUpdate(_ post: Post) throws {
+        Log.shared.trace("Will inset post with slug: \(post.slug)")
         try connection.run(postsTable.upsert(post, onConflictOf: slugColumn))
     }
     
