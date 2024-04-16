@@ -58,7 +58,7 @@ public class Post: Codable {
         }
         
         self.slug = slug
-        self.title = markdownFile?.parsedContent?.title ?? "Untitled"
+        self.title = markdownFile?.parsedContent.title ?? "Untitled"
         self.createdDate = sourceFileCreationDate
         self.updatedDate = sourceFileUpdatedDate
         self.previewContent = markdownFile?.truncatedBodyContent
@@ -98,5 +98,12 @@ public class Post: Codable {
         
         let dateFormatStyle = Date.FormatStyle().year().month().day()
         return try? dateFormatStyle.parse(string)
+    }
+}
+
+extension Post: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        let hasGeneratedContent = hasGeneratedContent ?? false
+        return "Slug: \(slug). Title: \(title). Created: \(createdDate.description(with: .current)). Updated: \(updatedDate?.description(with: .current) ?? "never"). Preview content: \(previewContent ?? "none").\(hasGeneratedContent ? " Has generated content" : "")"
     }
 }

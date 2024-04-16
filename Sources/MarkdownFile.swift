@@ -9,34 +9,42 @@ import Foundation
 import Ink
 import SwiftSoup
 
+enum MarkdownDocumentError: Error {
+    case failedToRead(fileAtURL: URL)
+    case failedToParse(fileAtURL: URL)
+}
+
 public struct MarkdownFile {
     
     let fileURL: URL
     
-    private var fileContent: String? {
-        Log.shared.trace("Reading Markdown file: \(fileURL)")
-        return try? String(contentsOf: fileURL)
-    }
+    public let parsedContent: Markdown
     
-    private let parser = MarkdownParser()
-    
-    public var parsedContent: Markdown? {
-        Log.shared.trace("Parsing Markdown content")
-        guard let fileContent = fileContent else {
-            return nil
+    init(fileURL: URL) throws {
+        self.fileURL = fileURL
+        
+        guard let fileContent = try? String(contentsOf: fileURL) else {
+            throw MarkdownDocumentError.failedToRead(fileAtURL: fileURL)
         }
-        return parser.parse(fileContent)
+        
+        let codeSyntaxHighlightingModifier = Modifier(target: .codeBlocks) { html, markdown in
+            // TODO: Perform syntax highlighting
+                // Determine the language by reading the code-block opening line to see if a language is specified
+                // Write tokenizers for the languages I need: Swift, HTML, JS/TS, CSS/SCSS
+                // Apply the matching tokenizer if one exists, otherwise do nothing
+            return html
+        }
+        
+        let parser = MarkdownParser(modifiers: [codeSyntaxHighlightingModifier])
+        self.parsedContent = parser.parse(fileContent)
     }
     
     public var metadata: [String : String]? {
-        return parsedContent?.metadata
+        return parsedContent.metadata
     }
     
     public func markupRepresentation(strippingFirstHeadingElement: Bool = true) -> String? {
-        // TODO: Perform syntax highlighting
-        guard let parsedMarkup = parsedContent?.html else {
-            return nil
-        }
+        let parsedMarkup = parsedContent.html
         
         do {
             let markupDocument = try SwiftSoup.parseBodyFragment(parsedMarkup)

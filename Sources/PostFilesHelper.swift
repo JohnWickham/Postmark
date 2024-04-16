@@ -7,6 +7,10 @@
 
 import Foundation
 
+enum PostFilesError: Error {
+    case noSuitableSlugCharacters(directoryURL: URL)
+}
+
 struct PostFilesHelper {
     
     var contentDirectoryURL: URL
@@ -58,7 +62,7 @@ struct PostFilesHelper {
             }
         }
         
-        return UUID().uuidString
+        throw PostFilesError.noSuitableSlugCharacters(directoryURL: postDirectory)
     }
     
     /* Whether a URL is a post's source Markdown file. */

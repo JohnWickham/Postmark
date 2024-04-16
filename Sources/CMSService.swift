@@ -47,11 +47,11 @@ extension Watch: FileDidChangeDelegate {
         let filesHelper = PostFilesHelper(contentDirectoryURL: contentDirectoryURL)
         
         switch event {
-        case .added(let file):
+        case .added(let file), .changed(let file):
             
             guard let isPostFolder = try? filesHelper.isPostFolder(file),
             let isPostSourceFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
-                Log.shared.warning("A file was added, but an error was thrown evalutating whether it was a post folder or post meta file. Nothing will be done about this change.")
+                Log.shared.error("A file was added or changed, but an error occurred evalutating whether it was a post folder or post source content file. Nothing will be done about this change.")
                 return
             }
             
@@ -59,35 +59,12 @@ extension Watch: FileDidChangeDelegate {
                 return
             }
             
-            Log.shared.debug("New post folder or post source content file was added.")
+            Log.shared.debug("Post folder or post source content file was added or changed.")
             
             if let postDirectory = isPostFolder ? file : filesHelper.getContainingDirectory(for: file) {
                 do {
-                    let postProcessor = try PostProcessor(postDirectory: postDirectory, in: contentDirectoryURL)
-                    try postProcessor.process()
-                }
-                catch {
-                    Log.shared.error("Error processing post: \(error.localizedDescription). Post: \(file)")
-                }
-            }
-            
-        case .changed(let file):
-                            
-            guard let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
-                Log.shared.warning("A file was changed, but an error was thrown when evalutaing whether it was a post source content file. Nothing will be done about this change.")
-                return
-            }
-
-            guard isPostSourceContentFile else {
-                return
-            }
-            
-            Log.shared.debug("Post source content file was changed.")
-            
-            if let postDirectory = filesHelper.getContainingDirectory(for: file) {
-                do {
-                    let postProcessor = try PostProcessor(postDirectory: postDirectory, in: contentDirectoryURL)
-                    try postProcessor.process()
+                    let processingQueue = try PostProcessingQueue(postDirectory: postDirectory, in: contentDirectoryURL, commitChanges: true)
+                    try processingQueue.process()
                 }
                 catch {
                     Log.shared.error("Error processing post: \(error.localizedDescription). Post: \(file)")
@@ -100,7 +77,7 @@ extension Watch: FileDidChangeDelegate {
             
             guard let isPostFolder = try? filesHelper.isPostFolder(file),
             let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
-                Log.shared.warning("A file was changed, but an error was thrown evaluating whether it was a post folder or source content file. Nothing will be done about this change.")
+                Log.shared.error("A file was deleted, but an error occurred evaluating whether it was a post folder or source content file. Nothing will be done about this change.")
                 return
             }
             
@@ -146,7 +123,9 @@ struct Regenerate: ParsableCommand {
     public func run() {
         let fileHelper = PostFilesHelper(contentDirectoryURL: contentDirectoryURL)
         
-        // TODO: Implement the dryRun option
+        if dryRun {
+            Log.shared.info("Dry run: the following changes won't be committed.")
+        }
         
         let databaseFileURL = URL(fileURLWithPath: databaseFilePath, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
         
@@ -156,15 +135,8 @@ struct Regenerate: ParsableCommand {
             
             let allPostDirectories = fileHelper.postDirectories
             Log.shared.debug("Found post directories: \(allPostDirectories)")
-            for directory in allPostDirectories {
-                do {
-                    let postProcessor = try PostProcessor(postDirectory: directory, in: contentDirectoryURL)
-                    try postProcessor.process()
-                }
-                catch {
-                    Log.shared.error("Error processing post: \(error.localizedDescription). Post: \(directory)")
-                }
-            }
+            let processingQueue = try PostProcessingQueue(postDirectories: allPostDirectories, in: contentDirectoryURL, commitChanges: !dryRun)
+            try processingQueue.process()
 
         }
         catch {
