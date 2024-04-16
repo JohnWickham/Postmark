@@ -88,7 +88,7 @@ extension Watch: FileDidChangeDelegate {
             Log.shared.debug("Post folder or source content file was deleted.")
             
             do {
-                let postSlug = try filesHelper.postSlug(for: file)
+                let postSlug = try filesHelper.makePostSlug(for: file)
                 if let post = DataStore.shared.getPost(by: postSlug) {
                     try DataStore.shared.delete(post)
                 }
@@ -115,9 +115,9 @@ struct Regenerate: ParsableCommand {
     }
     
     @Option(help: "The path to the database file.")
-    private var databaseFilePath: String = "store.sqlite"
+    private var databaseFile: String = "store.sqlite"
   
-    @Flag(help: "Output a summary of all changes to be made, without actaully writing any files.")
+    @Flag(help: "Output a summary of all changes to be made, without actaully committing them.")
     var dryRun = false
 
     public func run() {
@@ -127,15 +127,17 @@ struct Regenerate: ParsableCommand {
             Log.shared.info("Dry run: the following changes won't be committed.")
         }
         
-        let databaseFileURL = URL(fileURLWithPath: databaseFilePath, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
+        let databaseFileURL = URL(fileURLWithPath: databaseFile, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
         
         do {
-            try DataStore.shared.open(databaseFile: databaseFileURL.standardized)
-            try DataStore.shared.deleteAllPosts()
+            if !dryRun {
+                try DataStore.shared.open(databaseFile: databaseFileURL.standardized)
+                try DataStore.shared.deleteAllPosts()
+            }
             
             let allPostDirectories = fileHelper.postDirectories
-            Log.shared.debug("Found post directories: \(allPostDirectories)")
-            let processingQueue = try PostProcessingQueue(postDirectories: allPostDirectories, in: contentDirectoryURL, commitChanges: !dryRun)
+            Log.shared.debug("Found post \(allPostDirectories.count) in \(contentDirectoryURL.standardizedFileURL)")
+            let processingQueue = try PostProcessingQueue(postDirectories: allPostDirectories, in: contentDirectoryURL.standardizedFileURL, commitChanges: !dryRun)
             try processingQueue.process()
 
         }

@@ -35,15 +35,15 @@ struct PostFilesHelper {
         }
         
         // 2. It's a direct child of the content directory
-        let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardized, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants])
+        let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardizedFileURL, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants])
         
-        guard contentDirectoryContents.contains(fileURL.standardized) else {
+        guard contentDirectoryContents.contains(fileURL.standardizedFileURL) else {
             Log.shared.debug("Directory is not in the content directory: \(fileURL)")
             return false
         }
         
         // 3. It contains a Markdown file
-        if firstMarkdownFile(in: fileURL.standardized) == nil {
+        if firstMarkdownFile(in: fileURL.standardizedFileURL) == nil {
             Log.shared.debug("Directory does not contain a Markdown file: \(fileURL)")
             return false
         }
@@ -51,7 +51,7 @@ struct PostFilesHelper {
         return true
     }
     
-    func postSlug(for postDirectory: URL) throws -> String {
+    func makePostSlug(for postDirectory: URL) throws -> String {
         let postDirectoryName = postDirectory.lastPathComponent
         if let latin = postDirectoryName.applyingTransform(StringTransform("Any-Latin; Latin-ASCII;"), reverse: false) {
             let urlComponents = latin.components(separatedBy: PostFilesHelper.slugSafeCharacters.inverted)
@@ -67,7 +67,9 @@ struct PostFilesHelper {
     
     /* Whether a URL is a post's source Markdown file. */
     func isPostSourceContentFile(fileURL: URL) throws -> Bool {
-        let parentDirectory = fileURL.deletingLastPathComponent()
+        guard let parentDirectory = getContainingDirectory(for: fileURL) else {
+            return false
+        }
         let isParentPostFolder = try isPostFolder(parentDirectory)
         return isParentPostFolder && fileURL.pathExtension == "md"
     }
@@ -119,12 +121,12 @@ struct PostFilesHelper {
     /* Every directory in the content directory containing a Markdown file. */
     public var postDirectories: [URL] {
         do {
-            let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardized, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants])
+            let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardizedFileURL, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants])
             Log.shared.debug("Found \(contentDirectoryContents.count) items in content directory: \(contentDirectoryContents.debugDescription)")
             return contentDirectoryContents.filter { return (try? isPostFolder($0)) ?? false }
         }
         catch {
-            Log.shared.debug("Failed to find post directories: \(error.localizedDescription)")
+            Log.shared.debug("Failed to find post directories in \(contentDirectoryURL.standardizedFileURL): \(error.localizedDescription)")
             return []
         }
     }

@@ -53,7 +53,7 @@ public class Post: Codable {
         
         let sourceFileUpdatedDate = sourceFileAttributes[FileAttributeKey.modificationDate] as? Date
                 
-        guard let slug = try? filesHelper.postSlug(for: directory) else {
+        guard let slug = try? filesHelper.makePostSlug(for: directory) else {
             throw PostFileAnalysisError.noSuitableSlug(forDirectory: directory)
         }
         
