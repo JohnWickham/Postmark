@@ -61,7 +61,7 @@
       </MacroExpansion>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "watch"
+            argument = "regenerate"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

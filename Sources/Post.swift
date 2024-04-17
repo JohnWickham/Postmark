@@ -14,17 +14,28 @@ enum PostFileAnalysisError: Error {
     case noSuitableSlug(forDirectory: URL)
 }
 
+public struct Topic: Codable {
+    var slug: String
+    var title: String
+}
+
 public class Post: Codable {
     var slug: String
     var title: String
+    var topics: [Topic]?
     var createdDate: Date
     var updatedDate: Date?
     var previewContent: String?
     var hasGeneratedContent: Bool?
+    
+    private enum CodingKeys: String, CodingKey {
+        case slug, title, createdDate, updatedDate, previewContent, hasGeneratedContent
+    }
         
-    init(slug: String, title: String, createdDate: Date, updatedDate: Date? = nil, previewContent: String? = nil, hasGeneratedContent: Bool? = nil) {
+    init(slug: String, title: String, topics: [Topic], createdDate: Date, updatedDate: Date? = nil, previewContent: String? = nil, hasGeneratedContent: Bool? = nil) {
         self.slug = slug
         self.title = title
+        self.topics = topics
         self.createdDate = createdDate
         self.updatedDate = updatedDate
         self.previewContent = previewContent
@@ -75,13 +86,27 @@ public class Post: Codable {
             self.title = title
         }
         
+        if let topicNamesList = metadata?["topics"] as? String {
+            let topicNames = topicNamesList.matchingSubstrings(usingRegex: "(?<=^|\\s)[a-zA-Z0-9- ]+")
+            let topics = topicNames.compactMap { (topicName) -> Topic? in
+                guard let slug = topicName.makeSlug() else {
+                    return nil
+                }
+                return Topic(slug: slug.lowercased(), title: topicName)
+            }
+            Log.shared.trace("Found \(topics.count) topics for post: \(slug)")
+            self.topics = topics
+        }
+        
         if let createdDateString = metadata?["created"],
            let createdDate = dateFrom(createdDateString) {
+            Log.shared.trace("Made date: \(createdDate) from string: \(createdDateString)")
             self.createdDate = createdDate
         }
         
         if let updatedDateString = metadata?["updated"],
            let updatedDate = dateFrom(updatedDateString) {
+            Log.shared.trace("Made date: \(updatedDate) from string: \(updatedDateString)")
             self.updatedDate = updatedDate
         }
         
@@ -96,8 +121,8 @@ public class Post: Codable {
             return nil
         }
         
-        let dateFormatStyle = Date.FormatStyle().year().month().day()
-        return try? dateFormatStyle.parse(string)
+        let parseStrategy = Date.ParseStrategy(format: "\(year: .defaultDigits)-\(month: .twoDigits)-\(day: .twoDigits)", timeZone: .current)
+        return try? Date(string, strategy: parseStrategy)
     }
 }
 

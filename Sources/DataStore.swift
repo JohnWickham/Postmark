@@ -8,16 +8,6 @@
 import Foundation
 import SQLite
 
-public class Topic: Codable {
-    var slug: String
-    var title: String
-        
-    init(slug: String, title: String) {
-        self.slug = slug
-        self.title = title
-    }
-}
-
 public class DataStore {
     
     // TODO: How can we create the shared singleton instance by providing the database file URL?
@@ -63,7 +53,7 @@ public class DataStore {
         
         // Create Topic table
         try connection.run(topicsTable.create(ifNotExists: true) { table in
-            table.column(slugColumn)
+            table.column(slugColumn, primaryKey: true)
             table.column(titleColumn)
             table.column(parentColumn)
         })
@@ -73,8 +63,10 @@ public class DataStore {
             table.column(postSlugRelationColumn)
             table.column(topicSlugRelationColumn)
             
-            table.foreignKey(postSlugRelationColumn, references: postsTable, slugColumn)
-            table.foreignKey(topicSlugRelationColumn, references: topicsTable, slugColumn)
+            table.primaryKey(postSlugRelationColumn, topicSlugRelationColumn)
+            
+            table.foreignKey(postSlugRelationColumn, references: postsTable, slugColumn, delete: .cascade)
+            table.foreignKey(topicSlugRelationColumn, references: topicsTable, slugColumn, delete: .cascade)
         })
     }
     
@@ -101,7 +93,16 @@ public class DataStore {
     /* Updates a Post, inserting if it does not exist. */
     public func addOrUpdate(_ post: Post) throws {
         Log.shared.trace("Will insert post with slug: \(post.slug)")
-        try connection.run(postsTable.upsert(post, onConflictOf: slugColumn))
+        try connection.transaction {
+            try connection.run(postsTable.upsert(post, onConflictOf: slugColumn))
+            if let topics = post.topics {
+                for topic in topics {
+                    Log.shared.trace("Will insert topic with slug: \(topic.slug)")
+                    try connection.run(topicsTable.upsert(topic, onConflictOf: slugColumn))
+                    try connection.run(postTopicRelationshipTable.insert(postSlugRelationColumn <- post.slug, topicSlugRelationColumn <- topic.slug))
+                }
+            }
+        }
     }
     
     public func replaceAll(_ posts: [Post]) throws {

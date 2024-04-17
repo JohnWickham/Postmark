@@ -3,7 +3,7 @@ import ArgumentParser
 import FileMonitor
 
 @main
-struct CMSService: ParsableCommand {
+struct Postmark: ParsableCommand {
     static var configuration = CommandConfiguration(abstract: "A lightweight CMS for publishing Markdown-based hypertext.", subcommands: [Regenerate.self, Watch.self])
 }
 
@@ -33,7 +33,7 @@ struct Watch: ParsableCommand {
             Log.shared.info("Monitoring for changes in \(contentDirectory)")
         }
         catch {
-            CMSService.exit(withError: error)
+            Postmark.exit(withError: error)
         }
         
         RunLoop.main.run()

@@ -9,6 +9,8 @@ import Foundation
 
 extension String {
     
+    private static let slugSafeCharacters = CharacterSet(charactersIn: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-")
+    
     func leadingWords(_ count: Int) -> String {
         
         var substringRanges: [Range<String.Index>] = []
@@ -23,6 +25,31 @@ extension String {
         } else {
             return self
         }
+    }
+    
+    func makeSlug() -> String? {
+        if let latin = self.applyingTransform(StringTransform("Any-Latin; Latin-ASCII;"), reverse: false) {
+            let urlComponents = latin.components(separatedBy: String.slugSafeCharacters.inverted)
+            let result = urlComponents.filter { $0 != "" }.joined(separator: "-")
+
+            if result.count > 0 {
+                return result
+            }
+        }
+        
+        return nil
+    }
+    
+    func matchingSubstrings(usingRegex regex: String) -> [String] {
+        guard let regex = try? NSRegularExpression(pattern: regex, options: .caseInsensitive) else {
+            return []
+        }
+        
+        let matches = regex.matches(in: self, range: NSRange(self.startIndex..., in: self))
+        let matchStrings = matches.map { match in
+           String(self[Range(match.range, in: self)!])
+        }
+        return matchStrings
     }
     
 }

@@ -9,7 +9,7 @@ import Logging
 
 class Log {
     public static let shared = {
-        var logger = Logger(label: "com.wickham.CMSService")
+        var logger = Logger(label: "com.wickham.Postmark")
         logger.logLevel = .trace
         return logger
     }()

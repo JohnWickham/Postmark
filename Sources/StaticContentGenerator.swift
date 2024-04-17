@@ -15,7 +15,6 @@ public struct StaticContentGenerator {
     
     public let contentDirectory: URL
     
-    // public func generateStaticContent(from markdownFile: MarkdownFile, for post: Post, in postDirectory: URL, overwriteExisting: Bool = true) {
     public func generateStaticContent(for post: Post, with markdownDocument: MarkdownFile, overwriteExisting: Bool = true) throws {
         Log.shared.trace("Starting static content generation for post: \(post)")
         
