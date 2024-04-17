@@ -20,31 +20,50 @@ public struct Topic: Codable {
 }
 
 public class Post: Codable {
+    
+    public enum PublishStatus: String, Codable {
+        case `public` = "public"
+        case draft = "draft"
+        case `private` = "private"
+    }
+    
     var slug: String
     var title: String
     var topics: [Topic]?
     var createdDate: Date
     var updatedDate: Date?
+    var publishStatus: PublishStatus
     var previewContent: String?
     var hasGeneratedContent: Bool?
     
     private enum CodingKeys: String, CodingKey {
-        case slug, title, createdDate, updatedDate, previewContent, hasGeneratedContent
+        case slug, title, createdDate, updatedDate, previewContent, publishStatus, hasGeneratedContent
     }
         
-    init(slug: String, title: String, topics: [Topic], createdDate: Date, updatedDate: Date? = nil, previewContent: String? = nil, hasGeneratedContent: Bool? = nil) {
+    init(slug: String, title: String, topics: [Topic], createdDate: Date, updatedDate: Date? = nil, publishStatus: PublishStatus, previewContent: String? = nil, hasGeneratedContent: Bool? = nil) {
         self.slug = slug
         self.title = title
         self.topics = topics
         self.createdDate = createdDate
         self.updatedDate = updatedDate
+        self.publishStatus = publishStatus
         self.previewContent = previewContent
         self.hasGeneratedContent = hasGeneratedContent
     }
     
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(slug, forKey: .slug)
+        try container.encode(title, forKey: .title)
+        try container.encode(createdDate, forKey: .createdDate)
+        try container.encode(updatedDate, forKey: .updatedDate)
+        try container.encode(publishStatus.rawValue, forKey: .publishStatus)
+        try container.encodeIfPresent(previewContent, forKey: .previewContent)
+        try container.encodeIfPresent(hasGeneratedContent, forKey: .hasGeneratedContent)
+    }
+    
     /* Initializes a Post describing the given content directory. */
     init(describing directory: URL, markdownFile: MarkdownFile?) throws {
-        // TODO: Validate that the directory is a proper post directory
         
         let parentDirectory = directory.deletingLastPathComponent()
         let filesHelper = PostFilesHelper(contentDirectoryURL: parentDirectory)
@@ -72,6 +91,7 @@ public class Post: Codable {
         self.title = markdownFile?.parsedContent.title ?? "Untitled"
         self.createdDate = sourceFileCreationDate
         self.updatedDate = sourceFileUpdatedDate
+        self.publishStatus = filesHelper.makePostPublishStatus(for: directory)
         self.previewContent = markdownFile?.truncatedBodyContent
         Log.shared.debug("Initialized Post with preview content: \(String(describing: previewContent))")
         
@@ -129,6 +149,6 @@ public class Post: Codable {
 extension Post: CustomDebugStringConvertible {
     public var debugDescription: String {
         let hasGeneratedContent = hasGeneratedContent ?? false
-        return "Slug: \(slug). Title: \(title). Created: \(createdDate.description(with: .current)). Updated: \(updatedDate?.description(with: .current) ?? "never"). Preview content: \(previewContent ?? "none").\(hasGeneratedContent ? " Has generated content" : "")"
+        return "Slug: \(slug). Title: \(title). Created: \(createdDate.description(with: .current)). Updated: \(updatedDate?.description(with: .current) ?? "never"). Publish status: \(publishStatus.rawValue). Preview content: \(previewContent ?? "none").\(hasGeneratedContent ? " Has generated content" : "")"
     }
 }

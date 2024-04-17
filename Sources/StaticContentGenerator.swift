@@ -8,7 +8,7 @@
 import Foundation
 
 enum StaticContentGenerationError: Error {
-    case noContentSourceFile(inDirectory: URL)
+    case unexpectedFileHierarchy
 }
 
 public struct StaticContentGenerator {
@@ -20,7 +20,11 @@ public struct StaticContentGenerator {
         
         let duration = try SuspendingClock().measure {
             let postFilesHelper = PostFilesHelper(contentDirectoryURL: contentDirectory)
-            let staticContentFilePath = postFilesHelper.makeStaticContentFileURL(forPostWith: post.slug)
+            guard let containingDirectoryURL = postFilesHelper.getContainingDirectory(for: markdownDocument.fileURL),
+                  let staticContentFilePath = postFilesHelper.makeStaticContentFileURL(forPostAt: containingDirectoryURL) else {
+                Log.shared.error("Failed to generate static content for post: \(post.slug). Couldn't find post directory.")
+                throw StaticContentGenerationError.unexpectedFileHierarchy
+            }
             
             if overwriteExisting {
                 try deleteExistingStaticContentFile(at: staticContentFilePath)

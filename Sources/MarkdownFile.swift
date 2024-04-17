@@ -11,7 +11,6 @@ import SwiftSoup
 
 enum MarkdownDocumentError: Error {
     case failedToRead(fileAtURL: URL)
-    case failedToParse(fileAtURL: URL)
 }
 
 public struct MarkdownFile {
@@ -26,6 +25,8 @@ public struct MarkdownFile {
         guard let fileContent = try? String(contentsOf: fileURL) else {
             throw MarkdownDocumentError.failedToRead(fileAtURL: fileURL)
         }
+        
+        // TODO: Add a modifier to .headings to insert an anchor to specific document headings
         
         let codeSyntaxHighlightingModifier = Modifier(target: .codeBlocks) { html, markdown in
             // TODO: Perform syntax highlighting

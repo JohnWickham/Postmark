@@ -66,6 +66,7 @@ struct PostProcessingQueue {
     
     public func process() throws {
         Log.shared.trace("Processing \(tasks.count) post\(tasks.count == 1 ? "" : "s")")
+        var failedTasks: [PostProcessingTask] = []
         let duration = SuspendingClock().measure {
             // TODO: Dequeue tasks
             for task in tasks {
@@ -74,11 +75,13 @@ struct PostProcessingQueue {
                     try addDatabaseEntries(for: task.post)
                 }
                 catch {
-                    Log.shared.error("Failed to process post: \(error.localizedDescription)")
+                    Log.shared.error("Failed to process post: \(error)")
+                    failedTasks.append(task)
                 }
             }
         }
-        Log.shared.trace("Finished processing \(tasks.count) post\(tasks.count == 1 ? "" : "s") in \(duration.description)")
+        let successfulTaskCount = tasks.count - failedTasks.count
+        Log.shared.trace("Finished processing \(successfulTaskCount) post\(successfulTaskCount == 1 ? "" : "s") in \(duration.description). \(failedTasks.count) posts failed to process.")
     }
     
     // Method for generating static content files

@@ -88,10 +88,8 @@ extension Watch: FileDidChangeDelegate {
             Log.shared.debug("Post folder or source content file was deleted.")
             
             do {
-                let postSlug = try filesHelper.makePostSlug(for: file)
-                if let post = DataStore.shared.getPost(by: postSlug) {
-                    try DataStore.shared.delete(post)
-                }
+                let slug = try filesHelper.makePostSlug(for: file)
+                try DataStore.shared.delete(postWith: slug)
             }
             catch {
                 // TODO: Test whether this works haha
@@ -116,6 +114,8 @@ struct Regenerate: ParsableCommand {
     
     @Option(help: "The path to the database file.")
     private var databaseFile: String = "store.sqlite"
+    
+    // TODO: Add option to rebuild the database only, without regenerating static content files.
   
     @Flag(help: "Output a summary of all changes to be made, without actaully committing them.")
     var dryRun = false

@@ -50,11 +50,24 @@ struct PostFilesHelper {
     }
     
     func makePostSlug(for postDirectory: URL) throws -> String {
-        let postDirectoryName = postDirectory.lastPathComponent
+        // Delete the path extension so that slugs don't include publication directives like ".draft"
+        let postDirectoryName = postDirectory.deletingPathExtension().lastPathComponent
         guard let slug = postDirectoryName.makeSlug() else {
             throw PostFilesError.noSuitableSlugCharacters(directoryURL: postDirectory)
         }
         return slug
+    }
+    
+    // Determine the publish status for a post at the given directory
+    func makePostPublishStatus(for postDirectory: URL) -> Post.PublishStatus {
+        switch postDirectory.pathExtension {
+        case "draft":
+            return .draft
+        case "private", "hidden":
+            return .private
+        default:
+            return .public
+        }
     }
     
     /* Whether a URL is a post's source Markdown file. */
@@ -96,18 +109,8 @@ struct PostFilesHelper {
         return nil
     }
     
-    // Returns nil if no readable content source file exists
-    public func getContentSourceFile(forPostWith slug: String) -> URL? {
-        let postDirectoryURL = contentDirectoryURL.appending(path: slug, directoryHint: .isDirectory)
-        return getContentSourceFile(forPostAt: postDirectoryURL)
-    }
-    
     public func makeStaticContentFileURL(forPostAt postURL: URL) -> URL? {
         return postURL.appendingPathComponent("index.html")
-    }
-    
-    public func makeStaticContentFileURL(forPostWith slug: String) -> URL {
-        return contentDirectoryURL.appending(path: slug, directoryHint: .isDirectory).appendingPathComponent("index.html")
     }
     
     /* Every directory in the content directory containing a Markdown file. */

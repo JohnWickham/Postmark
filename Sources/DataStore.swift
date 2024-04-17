@@ -7,10 +7,10 @@
 
 import Foundation
 import SQLite
+import SQLite3
 
 public class DataStore {
     
-    // TODO: How can we create the shared singleton instance by providing the database file URL?
     public static let shared: DataStore = DataStore()
     
     private init() {
@@ -29,11 +29,12 @@ public class DataStore {
     private let topicSlugRelationColumn = Expression<String>("topicSlug")
     private let createdDateColumn = Expression<Date>("createdDate")
     private let updatedDateColumn = Expression<Date?>("updatedDate")
+    private let publishStatusColumn = Expression<String>("publishStatus")
     private let previewContentColumm = Expression<String?>("previewContent")
     private let hasGeneratedContentColumn = Expression<Bool?>("hasGeneratedContent")
     
     public func open(databaseFile: URL) throws {
-        Log.shared.trace("Opening database connection to \(databaseFile.path)")
+        Log.shared.trace("Opening database file: \(databaseFile.path)")
         connection = try Connection(databaseFile.absoluteString)
         try initializeSchema()
     }
@@ -47,6 +48,7 @@ public class DataStore {
             table.column(titleColumn)
             table.column(createdDateColumn)
             table.column(updatedDateColumn)
+            table.column(publishStatusColumn)
             table.column(previewContentColumm)
             table.column(hasGeneratedContentColumn)
         })
@@ -63,119 +65,70 @@ public class DataStore {
             table.column(postSlugRelationColumn)
             table.column(topicSlugRelationColumn)
             
-            table.primaryKey(postSlugRelationColumn, topicSlugRelationColumn)
-            
             table.foreignKey(postSlugRelationColumn, references: postsTable, slugColumn, delete: .cascade)
             table.foreignKey(topicSlugRelationColumn, references: topicsTable, slugColumn, delete: .cascade)
+            
+            table.primaryKey(postSlugRelationColumn, topicSlugRelationColumn)
         })
     }
     
     /* MARK: Public functions */
     
-    public var posts: [Post] {
-        get {
-            return (try? connection.prepare(postsTable).compactMap { row in
-                return try? row.decode() as Post
-            } as [Post]) ?? []
-        }
-    }
-    
-    public var topics: [Topic] {
-        get {
-            return (try? connection.prepare(topicsTable).compactMap { row in
-                return try? row.decode() as Topic
-            } as [Topic]) ?? []
-        }
-    }
-    
     // MARK: Posts
     
     /* Updates a Post, inserting if it does not exist. */
     public func addOrUpdate(_ post: Post) throws {
-        Log.shared.trace("Will insert post with slug: \(post.slug)")
+        Log.shared.trace("Will insert post: \(post)")
         try connection.transaction {
             try connection.run(postsTable.upsert(post, onConflictOf: slugColumn))
             if let topics = post.topics {
                 for topic in topics {
-                    Log.shared.trace("Will insert topic with slug: \(topic.slug)")
-                    try connection.run(topicsTable.upsert(topic, onConflictOf: slugColumn))
-                    try connection.run(postTopicRelationshipTable.insert(postSlugRelationColumn <- post.slug, topicSlugRelationColumn <- topic.slug))
+                    try addOrUpdate(topic)
+                    try addTopicRelationship(topicSlug: topic.slug, postSlug: post.slug)
                 }
             }
-        }
-    }
-    
-    public func replaceAll(_ posts: [Post]) throws {
-        try connection.transaction {
-            try connection.run(postTopicRelationshipTable.delete())
-            try connection.run(postsTable.delete())
-            try connection.run(postsTable.insertMany(posts))
         }
     }
     
     public func deleteAllPosts() throws {
         Log.shared.trace("Deleting all posts.")
         try connection.transaction {
-            try connection.run(postTopicRelationshipTable.delete())
             try connection.run(postsTable.delete())
         }
     }
     
-    /* Deletes a Post and any relationships to Topics. */
-    public func delete(_ post: Post) throws {
-        Log.shared.trace("Deleting post: \(post)")
-        let postToDelete = postsTable.filter(slugColumn == post.slug)
-        let topicRelationships = postTopicRelationshipTable.filter(postSlugRelationColumn == post.slug)
-        try connection.run(topicRelationships.delete())
+    public func delete(postWith slug: String) throws {
+        let postToDelete = postsTable.filter(slugColumn == slug)
         try connection.run(postToDelete.delete())
-    }
-    
-    public func getPost(by slug: String) -> Post? {
-        let postsQuery = postsTable.where(slugColumn == slug)
-        // TODO: Join topics
-        return try? connection.prepare(postsQuery).map { row in
-            return try row.decode() as Post
-        }.first
     }
     
     // MARK: Topics
     
     /* Updates a Topic, inserting if it does not exist. */
     public func addOrUpdate(_ topic: Topic) throws {
+        Log.shared.trace("Will insert topic: \(topic)")
         try connection.run(topicsTable.upsert(topic, onConflictOf: slugColumn))
     }
     
-    /* Deletes a Topic and any relationships to Posts. */
-    public func delete(_ topic: Topic) throws {
-        Log.shared.trace("Deleting topic: \(topic)")
-        let topicToDelete = topicsTable.filter(slugColumn == topic.slug)
-        let postRelationships = postTopicRelationshipTable.filter(topicSlugRelationColumn == topic.slug)
-        try connection.run(postRelationships.delete())
-        try connection.run(topicToDelete.delete())
+    public func deleteTopics(forPostWith slug: String) throws {
+        Log.shared.trace("Will delete topics for post: \(slug)")
+        let topics = postTopicRelationshipTable.join(topicsTable, on: postSlugRelationColumn == slugColumn)
+        try connection.run(topics.delete())
     }
     
-    public func getTopic(by slug: String) -> Topic? {
-        let topicsQuery = topicsTable.where(slugColumn == slug)
-        return try? connection.prepare(topicsQuery).map { row in
-            return try row.decode() as Topic
-        }.first
+    // MARK: Post-Topic Relationship
+    
+    public func addTopicRelationship(topicSlug: String, postSlug: String) throws {
+        Log.shared.trace("Will add relationship for topic \(topicSlug) to post \(postSlug)")
+       
+        do {
+            try connection.run(postTopicRelationshipTable.insert(postSlugRelationColumn <- postSlug, topicSlugRelationColumn <- topicSlug))
+        }
+        catch let Result.error(_, code, _) where code == SQLITE_CONSTRAINT {
+            Log.shared.info("Relationship between topic \(topicSlug) and post \(postSlug) already exists.")
+        }
     }
     
-    // MARK: Relationships
     
-    public func topics(for post: Post) throws -> [Topic] {
-        // FIXME: The topicsTable does not have a postSlugRelationColumn; you need to join tables.
-        let topicsQuery = topicsTable.where(postSlugRelationColumn == post.slug)
-        return (try? connection.prepare(topicsQuery).compactMap { row in
-            return try? row.decode() as Topic
-        } as [Topic]) ?? []
-    }
     
-    public func posts(for topic: Topic) throws -> [Post] {
-        // FIXME: The postsTable does not have a topicSlugRelationColumn; you need to join tables.
-        let postsQuery = postsTable.where(topicSlugRelationColumn == topic.slug)
-        return (try? connection.prepare(postsQuery).compactMap { row in
-            return try? row.decode() as Post
-        } as [Post]) ?? []
-    }
 }
