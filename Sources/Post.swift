@@ -133,6 +133,10 @@ public class Post: Codable {
         if let previewContent = metadata?["preview"] {
             self.previewContent = previewContent
         }
+        
+        if let publishStatusString = metadata?["status"] {
+            self.publishStatus = Post.PublishStatus(rawValue: publishStatusString) ?? .public
+        }
     }
     
     // Parse a date string formatted as Year-Month-Day

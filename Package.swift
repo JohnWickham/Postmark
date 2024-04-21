@@ -11,8 +11,8 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
-        .package(url: "https://github.com/aus-der-Technik/FileMonitor.git", from: "1.1.0"),
         .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.15.1"),
+        .package(path: "/Users/john/Projects/FileMonitor"),
         .package(url: "https://github.com/johnsundell/ink.git", from: "0.1.0"),
         .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0")
     ],
@@ -22,8 +22,8 @@ let package = Package(
         .executableTarget(name: "postmark", dependencies: [
             .product(name: "Logging", package: "swift-log"),
             .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            .product(name: "FileMonitor", package: "filemonitor"),
             .product(name: "SQLite", package: "SQLite.swift"),
+            .product(name: "FileMonitor", package: "FileMonitor"),
             .product(name: "Ink", package: "ink"),
             .product(name: "SwiftSoup", package: "SwiftSoup")
         ]),

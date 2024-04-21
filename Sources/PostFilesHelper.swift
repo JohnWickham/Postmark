@@ -24,19 +24,21 @@ struct PostFilesHelper {
     }
     
     /* Whether a URL is a directory that represents a post. */
-    func isPostFolder(_ fileURL: URL) throws -> Bool {
+    func isPostFolder(_ fileURL: URL, skipDirectoryCheck: Bool = false) throws -> Bool {
         
-        // 1. It's a directory
-        guard fileURL.isDirectory else {
-            Log.shared.debug("File is not a directory: \(fileURL)")
-            return false
+        if !skipDirectoryCheck {
+            // 1. It's a directory
+            guard fileURL.isDirectory else {
+                Log.shared.trace("File is not a directory: \(fileURL)")
+                return false
+            }
         }
         
         // 2. It's a direct child of the content directory
         let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardizedFileURL, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants])
         
         guard contentDirectoryContents.contains(fileURL.standardizedFileURL) else {
-            Log.shared.debug("Directory is not in the content directory: \(fileURL)")
+            Log.shared.trace("Directory \(fileURL.standardizedFileURL) is not in the content directory: \(contentDirectoryURL)")
             return false
         }
         

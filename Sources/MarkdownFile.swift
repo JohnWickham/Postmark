@@ -47,6 +47,8 @@ public struct MarkdownFile {
     public func markupRepresentation(strippingFirstHeadingElement: Bool = true) -> String? {
         let parsedMarkup = parsedContent.html
         
+        // TODO: Make the resulting markup valid HTML by including the <!DOCTYPE html> directive, <html lang=""> element, <head> and <title> elements, <body> tags
+        
         do {
             let markupDocument = try SwiftSoup.parseBodyFragment(parsedMarkup)
             if let firstHeadingElement = try markupDocument.select("h1").first {

@@ -125,7 +125,7 @@ public class DataStore {
             try connection.run(postTopicRelationshipTable.insert(postSlugRelationColumn <- postSlug, topicSlugRelationColumn <- topicSlug))
         }
         catch let Result.error(_, code, _) where code == SQLITE_CONSTRAINT {
-            Log.shared.info("Relationship between topic \(topicSlug) and post \(postSlug) already exists.")
+            Log.shared.debug("Relationship between topic \(topicSlug) and post \(postSlug) already exists.")
         }
     }
     

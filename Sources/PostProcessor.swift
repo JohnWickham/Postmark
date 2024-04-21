@@ -33,10 +33,10 @@ struct PostProcessingQueue {
         self.staticContentGenerator = StaticContentGenerator(contentDirectory: contentDirectory)
         self.shouldCommitChanges = commitChanges
         
-        guard let sourceContentFileURL = filesHelper.getContentSourceFile(forPostAt: contentDirectory) else {
-            throw PostFileAnalysisError.noContentSourceFile(inDirectory: contentDirectory)
+        guard let sourceContentFileURL = filesHelper.getContentSourceFile(forPostAt: postDirectory) else {
+            throw PostFileAnalysisError.noContentSourceFile(inDirectory: postDirectory)
         }
-        let task = try PostProcessingQueue.makeProcessingTask(for: sourceContentFileURL, in: contentDirectory)
+        let task = try PostProcessingQueue.makeProcessingTask(for: sourceContentFileURL, in: postDirectory)
         self.tasks = [task]
     }
     
@@ -90,7 +90,7 @@ struct PostProcessingQueue {
             try staticContentGenerator.generateStaticContent(for: post, with: markdownDocument, overwriteExisting: true)
         }
         else {
-            Log.shared.info("Generate static content file for: \(post.slug)")
+            Log.shared.debug("Generate static content file for: \(post.slug)")
         }
     }
     
@@ -100,7 +100,7 @@ struct PostProcessingQueue {
             try DataStore.shared.addOrUpdate(post)
         }
         else {
-            Log.shared.info("Add post to database: \(post)")
+            Log.shared.debug("Add post to database: \(post)")
         }
     }
     

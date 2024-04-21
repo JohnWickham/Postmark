@@ -11,26 +11,22 @@ struct Watch: ParsableCommand {
     
     static var configuration = CommandConfiguration(abstract: "Watch a given directory for changes and automatically generate static content and update database entries as appropriate.")
     
-    @Option(help: "The directory to monitor for changes in. Defaults to the current directory.")
-    var contentDirectory: String = FileManager.default.currentDirectoryPath
+    @Argument(help: "The directory to monitor for changes in. Defaults to the current directory.", transform: { string in
+        return URL(filePath: string, directoryHint: .inferFromPath, relativeTo: .currentDirectory())
+    })
+    private var contentDirectoryURL: URL = URL(filePath: FileManager.default.currentDirectoryPath)
     
-    private var contentDirectoryURL: URL {
-        return URL(fileURLWithPath: contentDirectory, isDirectory: true)
-    }
-    
-    @Option(help: "The path to the database file. Defaults to `./store.sqlite`.")
-    var databaseFilePath: String = "store.sqlite"
+    @Option(name: [.customLong("db"), .long], help: "The path to the database file.")
+    var databaseFile: String = "store.sqlite"
   
     public func run() {
-        let databaseFileURL = URL(fileURLWithPath: databaseFilePath, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
+        let databaseFileURL = URL(fileURLWithPath: databaseFile, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
       
         do {
             try DataStore.shared.open(databaseFile: databaseFileURL)
-            
-            // FIXME: File system watching isn't working.
-            let monitor = try FileMonitor(directory: contentDirectoryURL.standardizedFileURL, delegate: self)
+            let monitor = try FileMonitor(directory: contentDirectoryURL, delegate: self, options: nil)
             try monitor.start()
-            Log.shared.info("Monitoring for changes in \(contentDirectory)")
+            Log.shared.info("Postmark is watching for changes in \(contentDirectoryURL)")
         }
         catch {
             Postmark.exit(withError: error)
@@ -43,59 +39,80 @@ struct Watch: ParsableCommand {
 
 extension Watch: FileDidChangeDelegate {
     
-    func fileDidChanged(event: FileChange) {
-        let filesHelper = PostFilesHelper(contentDirectoryURL: contentDirectoryURL)
+    func fileDidChange(event: FileChange) {
+        let fileHelper = PostFilesHelper(contentDirectoryURL: contentDirectoryURL)
+        
+        Log.shared.trace("File event: \(event.description)")
         
         switch event {
-        case .added(let file), .changed(let file):
+        case .created(file: let file, isDirectory: let isDirectory),
+             .modified(file: let file, isDirectory: let isDirectory):
             
-            guard let isPostFolder = try? filesHelper.isPostFolder(file),
-            let isPostSourceFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
-                Log.shared.error("A file was added or changed, but an error occurred evalutating whether it was a post folder or post source content file. Nothing will be done about this change.")
-                return
-            }
+            return;
             
-            guard isPostFolder || isPostSourceFile else {
-                return
-            }
+            let fileURL = URL(fileURLWithPath: file.absoluteString).standardizedFileURL
             
-            Log.shared.debug("Post folder or post source content file was added or changed.")
-            
-            if let postDirectory = isPostFolder ? file : filesHelper.getContainingDirectory(for: file) {
-                do {
+            do {
+                let isPostFolder = try fileHelper.isPostFolder(fileURL)
+                let isPostSourceFile = try fileHelper.isPostSourceContentFile(fileURL: fileURL)
+                
+                guard isPostFolder || isPostSourceFile else {
+                    Log.shared.trace("A file was added or changed, but it wasn't a post folder or post source file.")
+                    return
+                }
+                
+                Log.shared.trace("Post folder or post source content file was added or changed.")
+                
+                if let postDirectory = isPostFolder ? fileURL : fileHelper.getContainingDirectory(for: fileURL) {
                     let processingQueue = try PostProcessingQueue(postDirectory: postDirectory, in: contentDirectoryURL, commitChanges: true)
                     try processingQueue.process()
                 }
-                catch {
-                    Log.shared.error("Error processing post: \(error.localizedDescription). Post: \(file)")
-                }
             }
-            
-        case .deleted(let file):
-            
-            // If the deleted file is a post's folder or its Markdown source file, remove it from the database.
-            
-            guard let isPostFolder = try? filesHelper.isPostFolder(file),
-            let isPostSourceContentFile = try? filesHelper.isPostSourceContentFile(fileURL: file) else {
-                Log.shared.error("A file was deleted, but an error occurred evaluating whether it was a post folder or source content file. Nothing will be done about this change.")
+            catch {
+                Log.shared.error("A file was added or changed, but an error occurred evalutating whether it was a post folder or post source content file: \(error.localizedDescription). Nothing will be done about this change.")
                 return
             }
             
-            guard isPostFolder || isPostSourceContentFile else {
-                return
-            }
+        case .removed(file: let file, isDirectory: let isDirectory):
             
-            Log.shared.debug("Post folder or source content file was deleted.")
+            let fileURL = URL(fileURLWithPath: file.absoluteString).standardizedFileURL
+            
+            Log.shared.trace("\(isDirectory ? "Directory" : "File") was deleted: \(file)")
+            
+            return;
             
             do {
-                let slug = try filesHelper.makePostSlug(for: file)
+                
+                // If a post file is deleted, check and see if its parent still exists.
+                // If it does, do nothing.
+                // If it doesn't, delete the post.
+                
+                let isPostSourceContentFile = try fileHelper.isPostSourceContentFile(fileURL: fileURL)
+                let postSourceContentFileParent = fileHelper.getContainingDirectory(for: fileURL)
+                if isPostSourceContentFile && postSourceContentFileParent == nil {
+                    Log.shared.trace("A post source content file was deleted, but the post's folder was, too. Nothing will be done about the deleted file; the deleted post folder will be handled instead.")
+                    return
+                }
+                
+                let isPostFolder = try fileHelper.isPostFolder(fileURL)
+                guard isPostFolder else {
+                    return
+                }
+                
+                Log.shared.debug("Post folder or source content file was deleted.")
+                
+                guard let postDirectory = fileHelper.getContainingDirectory(for: fileURL) else {
+                    Log.shared.error("Post source content file was deleted, but couldn't determine the post directory. The state of the system may now be undefined. You may want to `postmark regenerate`")
+                    return
+                }
+                
+                let slug = try fileHelper.makePostSlug(for: postDirectory)
                 try DataStore.shared.delete(postWith: slug)
             }
             catch {
-                // TODO: Test whether this works haha
-                Log.shared.error("Couldn't delete database entry for a post. Regenerating database.")
-                Regenerate(contentDirectory: contentDirectory).run()
+                Log.shared.error("A file was deleted, but an error occurred evaluating whether it was a post folder or source content file: \(error.localizedDescription). Nothing will be done about this change, but the state of the system may now be undefined. You may want to `postmark regenerate`.")
             }
+            
         }
     }
     
@@ -103,22 +120,21 @@ extension Watch: FileDidChangeDelegate {
 
 struct Regenerate: ParsableCommand {
     
-    static var configuration = CommandConfiguration(abstract: "Regenerate all static content and database records for content in a given dirctory.")
-        
-    @Option(help: "The directory to monitor for changes in. Defaults to the current directory.")
-    var contentDirectory: String = FileManager.default.currentDirectoryPath
+    static var configuration = CommandConfiguration(abstract: "Regenerate all static content and/or database records for content in a given dirctory.")
     
-    private var contentDirectoryURL: URL {
-        return URL(fileURLWithPath: contentDirectory, isDirectory: true)
-    }
+    @Argument(help: "The content directory in which to detect and generate files. Defaults to the current directory.", transform: { string in
+        return URL(filePath: string, directoryHint: .inferFromPath, relativeTo: .currentDirectory())
+    })
+    private var contentDirectoryURL: URL = URL(filePath: FileManager.default.currentDirectoryPath)
     
-    @Option(help: "The path to the database file.")
+    @Option(name: [.customLong("db"), .long], help: "The path to the database file.")
     private var databaseFile: String = "store.sqlite"
     
-    // TODO: Add option to rebuild the database only, without regenerating static content files.
+    @Option(name: [.customLong("db-only"), .customLong("database-only")], help: "Regenerate database entries without altering static content files.")
+    private var processDatabaseOnly: Bool = false
   
     @Flag(help: "Output a summary of all changes to be made, without actaully committing them.")
-    var dryRun = false
+    var dryRun: Bool = false
 
     public func run() {
         let fileHelper = PostFilesHelper(contentDirectoryURL: contentDirectoryURL)

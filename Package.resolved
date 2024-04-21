@@ -1,15 +1,6 @@
 {
-  "originHash" : "7765b9411b88b7d83cbfa15ad5b2105558e265ececc662e4f33f7e4721024e1c",
+  "originHash" : "64f01cd0022a8bac8d8f3388b7089d2988b714b7b101f3dd0f8fc621c41ad88c",
   "pins" : [
-    {
-      "identity" : "filemonitor",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/aus-der-Technik/FileMonitor.git",
-      "state" : {
-        "revision" : "0cfe5bd5842d6e83df173c454354eac6b6fd1f08",
-        "version" : "1.1.0"
-      }
-    },
     {
       "identity" : "ink",
       "kind" : "remoteSourceControl",
