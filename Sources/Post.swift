@@ -17,6 +17,11 @@ enum PostFileAnalysisError: Error {
 public struct Topic: Codable {
     var slug: String
     var title: String
+    
+    public init(slug: String, title: String) {
+        self.slug = slug
+        self.title = title
+    }
 }
 
 public class Post: Codable {
@@ -27,20 +32,20 @@ public class Post: Codable {
         case `private` = "private"
     }
     
-    var slug: String
-    var title: String
-    var topics: [Topic]?
-    var createdDate: Date
-    var updatedDate: Date?
-    var publishStatus: PublishStatus
-    var previewContent: String?
-    var hasGeneratedContent: Bool?
+    public var slug: String
+    public var title: String
+    public var topics: [Topic]?
+    public var createdDate: Date
+    public var updatedDate: Date?
+    public var publishStatus: PublishStatus
+    public var previewContent: String?
+    public var hasGeneratedContent: Bool?
     
     private enum CodingKeys: String, CodingKey {
         case slug, title, createdDate, updatedDate, previewContent, publishStatus, hasGeneratedContent
     }
         
-    init(slug: String, title: String, topics: [Topic], createdDate: Date, updatedDate: Date? = nil, publishStatus: PublishStatus, previewContent: String? = nil, hasGeneratedContent: Bool? = nil) {
+    public init(slug: String, title: String, topics: [Topic], createdDate: Date, updatedDate: Date? = nil, publishStatus: PublishStatus, previewContent: String? = nil, hasGeneratedContent: Bool? = nil) {
         self.slug = slug
         self.title = title
         self.topics = topics

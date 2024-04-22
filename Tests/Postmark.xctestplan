@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "B13003AB-7E8C-4DE9-91CC-888670947AFF",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:",
+      "identifier" : "postmark",
+      "name" : "postmark"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "Postmark-Tests",
+        "name" : "Postmark-Tests"
+      }
+    }
+  ],
+  "version" : 1
+}

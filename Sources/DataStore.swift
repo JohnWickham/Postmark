@@ -39,6 +39,11 @@ public class DataStore {
         try initializeSchema()
     }
     
+    public func close() {
+        // SQLite.swift automatically closes the database connection when it's deallocated
+        connection = nil
+    }
+    
     private func initializeSchema() throws {
         Log.shared.trace("Initializing database")
         
@@ -75,6 +80,10 @@ public class DataStore {
     /* MARK: Public functions */
     
     // MARK: Posts
+    
+    public func getCountOfPosts() throws -> Int {
+        return try connection.scalar(postsTable.count)
+    }
     
     /* Updates a Post, inserting if it does not exist. */
     public func addOrUpdate(_ post: Post) throws {

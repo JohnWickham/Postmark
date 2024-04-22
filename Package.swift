@@ -19,7 +19,7 @@ let package = Package(
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
-        .executableTarget(name: "postmark", dependencies: [
+        .executableTarget(name: "Postmark", dependencies: [
             .product(name: "Logging", package: "swift-log"),
             .product(name: "ArgumentParser", package: "swift-argument-parser"),
             .product(name: "SQLite", package: "SQLite.swift"),
@@ -27,5 +27,6 @@ let package = Package(
             .product(name: "Ink", package: "ink"),
             .product(name: "SwiftSoup", package: "SwiftSoup")
         ]),
+        .testTarget(name: "Postmark-Tests", dependencies: ["Postmark"])
     ]
 )
