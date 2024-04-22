@@ -18,8 +18,8 @@ public class DataStore {
         
     private var connection: Connection!
     
-    private let postsTable = Table("post")
-    private let topicsTable = Table("topic")
+    private let postsTable = Table("posts")
+    private let topicsTable = Table("topics")
     private let postTopicRelationshipTable = Table("post_topic")
     
     private let slugColumn = Expression<String>("slug")
