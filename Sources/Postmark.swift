@@ -18,6 +18,9 @@ struct Watch: ParsableCommand {
     
     @Option(name: [.customLong("db"), .long], help: "The path to the database file.")
     var databaseFile: String = "store.sqlite"
+    
+    @Option(name: [.short, .customLong("fragments")], help: "Generate HTML fragments for posts, instead of fully-formed HTML documents.")
+    var generateFragments: Bool = false
   
     public func run() {
         let databaseFileURL = URL(fileURLWithPath: databaseFile, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
@@ -44,6 +47,8 @@ extension Watch: FileDidChangeDelegate {
         
         Log.shared.trace("File event: \(event.description)")
         
+        // TODO: If an added or modified Markdown file is an "orphan" (direct child of the content directory without a containing post folder), create a post folder and move the file into it.
+        
         switch event {
         case .created(file: let file, isDirectory: let isDirectory),
              .modified(file: let file, isDirectory: let isDirectory):
@@ -64,7 +69,8 @@ extension Watch: FileDidChangeDelegate {
                 Log.shared.trace("Post folder or post source content file was added or changed.")
                 
                 if let postDirectory = isPostFolder ? fileURL : fileHelper.getContainingDirectory(for: fileURL) {
-                    let processingQueue = try PostProcessingQueue(postDirectory: postDirectory, in: contentDirectoryURL, commitChanges: true)
+                    let options: PostProcessingQueue.ProcessingOptions = generateFragments ? [.generateFragments] : []
+                    let processingQueue = try PostProcessingQueue(postDirectory: postDirectory, in: contentDirectoryURL, options: options)
                     try processingQueue.process()
                 }
             }
@@ -130,9 +136,12 @@ struct Regenerate: ParsableCommand {
     @Option(name: [.customLong("db"), .long], help: "The path to the database file.")
     private var databaseFile: String = "store.sqlite"
     
+    @Option(name: [.short, .customLong("fragments")], help: "Generate HTML fragments for posts, instead of fully-formed HTML documents.")
+    var generateFragments: Bool = false
+    
     @Option(name: [.customLong("db-only"), .customLong("database-only")], help: "Regenerate database entries without altering static content files.")
     private var processDatabaseOnly: Bool = false
-  
+    
     @Flag(help: "Output a summary of all changes to be made, without actaully committing them.")
     var dryRun: Bool = false
 
@@ -153,7 +162,8 @@ struct Regenerate: ParsableCommand {
             
             let allPostDirectories = fileHelper.postDirectories
             Log.shared.debug("Found post \(allPostDirectories.count) in \(contentDirectoryURL.standardizedFileURL)")
-            let processingQueue = try PostProcessingQueue(postDirectories: allPostDirectories, in: contentDirectoryURL.standardizedFileURL, commitChanges: !dryRun)
+            let processingOptions: PostProcessingQueue.ProcessingOptions = dryRun ? [.dryRun] : []
+            let processingQueue = try PostProcessingQueue(postDirectories: allPostDirectories, in: contentDirectoryURL.standardizedFileURL, options: processingOptions)
             try processingQueue.process()
 
         }

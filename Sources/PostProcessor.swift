@@ -16,8 +16,19 @@ struct PostProcessingTask: CustomDebugStringConvertible {
     }
 }
 
+public enum contentGeneratingMode {
+    case fullyFormed, fragments
+}
+
 // Manages the pipeline of generating content and database entries for a post.
 struct PostProcessingQueue {
+    
+    public struct ProcessingOptions: OptionSet {
+        public var rawValue: Int
+        
+        static var dryRun = ProcessingOptions(rawValue: 0)
+        static var generateFragments = ProcessingOptions(rawValue: 1)
+    }
     
     private var contentDirectory: URL
     private var filesHelper: PostFilesHelper
@@ -26,12 +37,14 @@ struct PostProcessingQueue {
     private var tasks: [PostProcessingTask]
     
     private var shouldCommitChanges: Bool
+    private var shouldGenerateFragments: Bool
     
-    public init(postDirectory: URL, in contentDirectory: URL, commitChanges: Bool) throws {
+    public init(postDirectory: URL, in contentDirectory: URL, options: ProcessingOptions = []) throws {
         self.contentDirectory = contentDirectory
         self.filesHelper = PostFilesHelper(contentDirectoryURL: contentDirectory)
         self.staticContentGenerator = StaticContentGenerator(contentDirectory: contentDirectory)
-        self.shouldCommitChanges = commitChanges
+        self.shouldCommitChanges = !options.contains(.dryRun)
+        self.shouldGenerateFragments = options.contains(.generateFragments)
         
         guard let sourceContentFileURL = filesHelper.getContentSourceFile(forPostAt: postDirectory) else {
             throw PostFileAnalysisError.noContentSourceFile(inDirectory: postDirectory)
@@ -40,11 +53,12 @@ struct PostProcessingQueue {
         self.tasks = [task]
     }
     
-    public init(postDirectories: [URL], in contentDirectory: URL, commitChanges: Bool) throws {
+    public init(postDirectories: [URL], in contentDirectory: URL, options: ProcessingOptions = []) throws {
         self.contentDirectory = contentDirectory
         self.filesHelper = PostFilesHelper(contentDirectoryURL: contentDirectory)
         self.staticContentGenerator = StaticContentGenerator(contentDirectory: contentDirectory)
-        self.shouldCommitChanges = commitChanges
+        self.shouldCommitChanges = !options.contains(.dryRun)
+        self.shouldGenerateFragments = options.contains(.generateFragments)
         
         self.tasks = []
         // FIXME: Mapping postDirectories to makeProcessingTask(for: in:) captured self.tasks before it was initialized somehow?

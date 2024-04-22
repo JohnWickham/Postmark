@@ -26,7 +26,7 @@ public struct MarkdownFile {
             throw MarkdownDocumentError.failedToRead(fileAtURL: fileURL)
         }
         
-        // TODO: Add a modifier to .headings to insert an anchor to specific document headings
+        // TODO: Add a modifier to .headings to add `id`s so that anchors can references specific headings.
         
         let codeSyntaxHighlightingModifier = Modifier(target: .codeBlocks) { html, markdown in
             // TODO: Perform syntax highlighting
@@ -44,18 +44,30 @@ public struct MarkdownFile {
         return parsedContent.metadata
     }
     
-    public func markupRepresentation(strippingFirstHeadingElement: Bool = true) -> String? {
+    public func markupRepresentation(fragment: Bool) -> String? {
         let parsedMarkup = parsedContent.html
-        
-        // TODO: Make the resulting markup valid HTML by including the <!DOCTYPE html> directive, <html lang=""> element, <head> and <title> elements, <body> tags
-        
+                
         do {
             let markupDocument = try SwiftSoup.parseBodyFragment(parsedMarkup)
-            if let firstHeadingElement = try markupDocument.select("h1").first {
-                try markupDocument.body()?.removeChild(firstHeadingElement)
-            }
+            let firstHeadingElement = try markupDocument.select("h1").first
             
-            return try markupDocument.body()?.html()
+            if fragment {
+                if firstHeadingElement != nil {
+                    try markupDocument.body()?.removeChild(firstHeadingElement!)
+                }
+                
+                return try markupDocument.body()?.html()
+            }
+            else {
+                // TODO: The <!DOCTYPE> directive isn’t strictly necessary for HTML to validate, but would be nice to add.
+                
+                if firstHeadingElement != nil,
+                   let firstHeadingText = try? firstHeadingElement?.text() {
+                    try markupDocument.title(firstHeadingText)
+                }
+                
+                return try markupDocument.html()
+            }
             
         }
         catch {
@@ -67,7 +79,7 @@ public struct MarkdownFile {
     
     // The text content of the first paragraph or span element in the parsed markup, truncated to 30 words.
     public var truncatedBodyContent: String? {
-        guard let markupRepresentation = markupRepresentation() else {
+        guard let markupRepresentation = markupRepresentation(fragment: true) else {
             return nil
         }
         

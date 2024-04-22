@@ -34,6 +34,18 @@ Postmark organizes each post in its own folder within the watched content direct
 
 Each post folder is named with the unique slug of the post; the HTML file is named `index.html`; attachment files are left untouched inside the post folder. This allows the content directory to be served statically with no additional work.
 
+If a Markdown document is added directly to the watched content directory without a containing post folder, Postmark will automatically create a post folder for it and move the document inside.
+
+## Document Parsing
+
+### Generating fragments
+
+By default, Postmark generates fully-formed HTML documents for posts, including `<html>`, `<title>`, and `<body>` tags. This may be undesirable when generated content is not served statically. For example, incorporating generated markup into a templating system may result in duplicate document tags or page elements, like the article’s title.
+
+Instead, Postmark can [generate HTML fragments](#using-postmark) that contain only markup for the body content of the article, ommitting the first heading element. Note that these files should not be served directly to browsers, as they won’t contain fully-formed HTML documents.
+
+### Metadata
+
 ## SQLite Database
 
 Postmark maintains a SQLite database of articles it has processed. This allows other applications to provide options for browsing content that are more robust than static serving. To specify a database file, see [Using Postmark](#using-postmark).

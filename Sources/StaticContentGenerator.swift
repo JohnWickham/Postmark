@@ -11,6 +11,7 @@ enum StaticContentGenerationError: Error {
     case unexpectedFileHierarchy
 }
 
+// TODO: Support generating fully-formed HTML or fragments
 public struct StaticContentGenerator {
     
     public let contentDirectory: URL
@@ -19,7 +20,7 @@ public struct StaticContentGenerator {
         self.contentDirectory = contentDirectory
     }
     
-    public func generateStaticContent(for post: Post, with markdownDocument: MarkdownFile, overwriteExisting: Bool = true) throws {
+    public func generateStaticContent(for post: Post, with markdownDocument: MarkdownFile, fragment: Bool = false, overwriteExisting: Bool = true) throws {
         Log.shared.trace("Starting static content generation for post: \(post)")
         
         let duration = try SuspendingClock().measure {
@@ -35,7 +36,7 @@ public struct StaticContentGenerator {
             }
             
             Log.shared.trace("Writing markup to file: \(staticContentFilePath)")
-            try markdownDocument.markupRepresentation()?.write(to: staticContentFilePath, atomically: true, encoding: .utf8)
+            try markdownDocument.markupRepresentation(fragment: fragment)?.write(to: staticContentFilePath, atomically: true, encoding: .utf8)
             
             post.hasGeneratedContent = true
         }
