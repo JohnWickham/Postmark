@@ -48,7 +48,7 @@ If a Markdown document is added directly to the watched content directory withou
 
 By default, Postmark generates fully-formed HTML documents for posts, including `<html>`, `<title>`, and `<body>` tags. This may be undesirable when generated content is not served statically. For example, incorporating generated markup into a templating system may result in duplicate document tags or page elements, like headings for the article’s title.
 
-Instead, Postmark can [generate HTML fragments](#using-postmark) that contain only markup for the body content of the article, ommitting the first heading element. Note that these files should not be served directly to browsers, as they won’t contain fully-formed HTML documents.
+Instead, Postmark can [generate HTML fragments](#using-postmark) that contain only markup for the body content of the article, omitting the first heading element. Note that these files should not be served directly to browsers, as they won’t contain fully-formed HTML documents.
 
 ### Metadata
 
