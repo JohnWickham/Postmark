@@ -15,6 +15,10 @@ public struct StaticContentGenerator {
     
     public let contentDirectory: URL
     
+    public init(contentDirectory: URL) {
+        self.contentDirectory = contentDirectory
+    }
+    
     public func generateStaticContent(for post: Post, with markdownDocument: MarkdownFile, overwriteExisting: Bool = true) throws {
         Log.shared.trace("Starting static content generation for post: \(post)")
         

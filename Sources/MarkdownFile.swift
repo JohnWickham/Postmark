@@ -19,7 +19,7 @@ public struct MarkdownFile {
     
     public let parsedContent: Markdown
     
-    init(fileURL: URL) throws {
+    public init(fileURL: URL) throws {
         self.fileURL = fileURL
         
         guard let fileContent = try? String(contentsOf: fileURL) else {

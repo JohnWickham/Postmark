@@ -27,6 +27,6 @@ let package = Package(
             .product(name: "Ink", package: "ink"),
             .product(name: "SwiftSoup", package: "SwiftSoup")
         ]),
-        .testTarget(name: "Postmark-Tests", dependencies: ["Postmark"])
+        .testTarget(name: "Postmark-Tests", dependencies: ["Postmark"], resources: [.copy("Example.md")])
     ]
 )

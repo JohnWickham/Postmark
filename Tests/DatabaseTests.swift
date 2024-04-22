@@ -15,6 +15,7 @@ final class DatabaseTests: XCTestCase {
         return URL(fileURLWithPath: "store.sqlite", relativeTo: temporaryDirectory)
     }
     
+    // TODO: Populate the database with a set of test data
     private static let testTopics = [
         Topic(slug: "example-topic-one", title: "Example Topic One"),
         Topic(slug: "example-topic-two", title: "Example Topic Two")
