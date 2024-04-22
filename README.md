@@ -16,6 +16,9 @@ Example: `postmark watch /opt/posts/content/`
 Options:
 
 - `--db, --database-file`: Specify a path to the database file. Defaults to `store.sqlite` in the current working directory.
+- `-f, --fragments`: Generate HTML fragments for posts, instead of fully-formed HTML documents.
+
+Postmark uses Inotify events to detect file-system changes on Linux, and FSEvents on macOS.
 
 ### Regenerate content
 To regenerate all content and/or database entries: `postmark regenerate [<content-directory-url>] [--db <db>] [--db-only <db-only>] [--dry-run]`.
@@ -26,13 +29,16 @@ Options:
 
 - `--db, --database-file`: Specify a path to the database file. Defaults to `store.sqlite` in the current working directory.
 - `--db-only, --database-only`: Regenerate database entries without altering static content files. (default: false).
+- `-f, --fragments`: Generate HTML fragments for posts, instead of fully-formed HTML documents.
 - `--dry-run`: Output a summary of all changes to be made, without actaully committing them.
 
 ## File Organization
 
-Postmark organizes each post in its own folder within the watched content directory. A post folder contains the original Markdown document, generated HTML file, and resources/attachment files to serve alongside the post.
+A primary goal of Postmark is to keep the “source of truth” for published content in file form, rather than relegate it to a cryptic database. To that end, Postmark organizes each post in its own folder within the watched content directory: a post folder contains the original, unaltered Markdown document, generated HTML file, and resources/attachment files to serve alongside the post.
 
 Each post folder is named with the unique slug of the post; the HTML file is named `index.html`; attachment files are left untouched inside the post folder. This allows the content directory to be served statically with no additional work.
+
+Additionally, keeping all related file artifacts for a given post together in one folder means that deleting the post folder is sufficient for deleting the post entirely. Postmark will notice that the post was deleted and remove it from the database—no additional clean-up to be done.
 
 If a Markdown document is added directly to the watched content directory without a containing post folder, Postmark will automatically create a post folder for it and move the document inside.
 
@@ -40,7 +46,7 @@ If a Markdown document is added directly to the watched content directory withou
 
 ### Generating fragments
 
-By default, Postmark generates fully-formed HTML documents for posts, including `<html>`, `<title>`, and `<body>` tags. This may be undesirable when generated content is not served statically. For example, incorporating generated markup into a templating system may result in duplicate document tags or page elements, like the article’s title.
+By default, Postmark generates fully-formed HTML documents for posts, including `<html>`, `<title>`, and `<body>` tags. This may be undesirable when generated content is not served statically. For example, incorporating generated markup into a templating system may result in duplicate document tags or page elements, like headings for the article’s title.
 
 Instead, Postmark can [generate HTML fragments](#using-postmark) that contain only markup for the body content of the article, ommitting the first heading element. Note that these files should not be served directly to browsers, as they won’t contain fully-formed HTML documents.
 
@@ -70,7 +76,7 @@ All properties are optional, and any other properties in the header are ignored.
 
 ## SQLite Database
 
-Postmark maintains a SQLite database of articles it has processed. This allows other applications to provide options for browsing content that are more robust than static serving. To specify a database file, see [Using Postmark](#using-postmark).
+Postmark maintains a SQLite database of articles it has processed. This allows other applications to provide options for browsing content that are more robust than static serving. Postmark considers the [source of truth for published content](#generating-fragments) to be the original files; the database is mearly an efficient means of analyzing what content exists. To specify a database file, see [Using Postmark](#using-postmark).
 
 The Postmark database has three tables:
 
