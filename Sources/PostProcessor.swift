@@ -12,7 +12,7 @@ struct PostProcessingTask: CustomDebugStringConvertible {
     let markdownDocument: MarkdownFile
     
     var debugDescription: String {
-        return "Post: \(post). Source content file: \(markdownDocument.fileURL)"
+        return "Post: \(post.slug). Source content file: \(markdownDocument.fileURL)"
     }
 }
 
@@ -26,8 +26,8 @@ struct PostProcessingQueue {
     public struct ProcessingOptions: OptionSet {
         public var rawValue: Int
         
-        static var dryRun = ProcessingOptions(rawValue: 0)
-        static var generateFragments = ProcessingOptions(rawValue: 1)
+        static var dryRun = ProcessingOptions(rawValue: 1)
+        static var generateFragments = ProcessingOptions(rawValue: 2)
     }
     
     private var contentDirectory: URL
@@ -101,10 +101,10 @@ struct PostProcessingQueue {
     // Method for generating static content files
     private func generateStaticContent(for post: Post, with markdownDocument: MarkdownFile) throws {
         if shouldCommitChanges {
-            try staticContentGenerator.generateStaticContent(for: post, with: markdownDocument, overwriteExisting: true)
+            try staticContentGenerator.generateStaticContent(for: post, with: markdownDocument, fragment: shouldGenerateFragments, overwriteExisting: true)
         }
         else {
-            Log.shared.debug("Generate static content file for: \(post.slug)")
+            Log.shared.debug("Generate static \(shouldGenerateFragments ? "fragment" : "markup") file for: \(post.slug)")
         }
     }
     
