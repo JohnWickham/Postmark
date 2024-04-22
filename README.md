@@ -46,6 +46,28 @@ Instead, Postmark can [generate HTML fragments](#using-postmark) that contain on
 
 ### Metadata
 
+When creating database entries for a post, Postmark will [infer a number of its attributes](#posts)—like title and creation date—by analyzing its source Markdown document. To override the inferred values, Postmark will look for a metadata header at the start of Markdown documents:
+
+```
+---
+title: A Mathematical Theory of Communication
+created: 1948-07-13
+updated: 2001-02-01
+topics: Theories, Pulse-Code Modulation, Communication
+---
+```
+
+The metadata header can specify the following properties:
+
+- `title`
+- `created` date (`YYYY-MM-DD` format)
+- `updated` date (`YYYY-MM-DD` format)
+- `preview` content
+- `topics` as a comma-separated list of topic names (not slugs)
+- `status` one of `public`, `private`, or `draft`
+
+All properties are optional, and any other properties in the header are ignored.
+
 ## SQLite Database
 
 Postmark maintains a SQLite database of articles it has processed. This allows other applications to provide options for browsing content that are more robust than static serving. To specify a database file, see [Using Postmark](#using-postmark).
