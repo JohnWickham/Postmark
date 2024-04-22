@@ -162,7 +162,13 @@ struct Regenerate: ParsableCommand {
             
             let allPostDirectories = fileHelper.postDirectories
             Log.shared.debug("Found post \(allPostDirectories.count) in \(contentDirectoryURL.standardizedFileURL)")
-            let processingOptions: PostProcessingQueue.ProcessingOptions = dryRun ? [.dryRun] : []
+            var processingOptions: PostProcessingQueue.ProcessingOptions = []
+            if dryRun {
+                processingOptions.insert(.dryRun)
+            }
+            if generateFragments {
+                processingOptions.insert(.generateFragments)
+            }
             let processingQueue = try PostProcessingQueue(postDirectories: allPostDirectories, in: contentDirectoryURL.standardizedFileURL, options: processingOptions)
             try processingQueue.process()
 

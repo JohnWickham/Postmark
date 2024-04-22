@@ -113,3 +113,14 @@ Column | Type | Description
 `topicSlug` | Foreign key (`topic.slug`) | The slug of the related topic.
 
 This table has a compound primary key constraint on both of its columns.
+
+## Acknowledgements
+
+Postmark is made possible by these dependencies:
+
+1. [Ink by John Sundell](https://github.com/JohnSundell/Ink/tree/master/Sources)
+1. [FileMonitor](https://github.com/aus-der-Technik/FileMonitor)
+1. [SwiftSoup by Nabil Chatbi](https://github.com/scinfu/SwiftSoup)
+1. [SQLite.swift](https://github.com/stephencelis/SQLite.swift)
+
+This project overall is inspired greatly by [Markdown itself](https://daringfireball.net/projects/markdown/).
