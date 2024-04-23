@@ -1,6 +1,15 @@
 {
-  "originHash" : "64f01cd0022a8bac8d8f3388b7089d2988b714b7b101f3dd0f8fc621c41ad88c",
+  "originHash" : "f20c7a8f0d5d8be7ab07d46af27ffb6fe8a9d572836d04eeb1a319b06d831254",
   "pins" : [
+    {
+      "identity" : "filemonitor",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/JohnWickham/FileMonitor",
+      "state" : {
+        "revision" : "093c4c82e6a7832f22ea0b21ff06b233d1edc779",
+        "version" : "0.1.1-prerelease"
+      }
+    },
     {
       "identity" : "ink",
       "kind" : "remoteSourceControl",

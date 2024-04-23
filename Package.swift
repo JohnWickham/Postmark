@@ -12,7 +12,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
         .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.15.1"),
-        .package(path: "/Users/john/Projects/FileMonitor"),
+        .package(url: "https://github.com/JohnWickham/FileMonitor", from: "0.1.1-prerelease"),
         .package(url: "https://github.com/johnsundell/ink.git", from: "0.1.0"),
         .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0")
     ],
