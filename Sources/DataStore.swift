@@ -7,7 +7,6 @@
 
 import Foundation
 import SQLite
-import SQLite3
 
 public class DataStore {
     
@@ -133,7 +132,7 @@ public class DataStore {
         do {
             try connection.run(postTopicRelationshipTable.insert(postSlugRelationColumn <- postSlug, topicSlugRelationColumn <- topicSlug))
         }
-        catch let Result.error(_, code, _) where code == SQLITE_CONSTRAINT {
+        catch let Result.error(_, code, _) where code == 19 {// SQLITE_CONSTRAINT
             Log.shared.debug("Relationship between topic \(topicSlug) and post \(postSlug) already exists.")
         }
     }
