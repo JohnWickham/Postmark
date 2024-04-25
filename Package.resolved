@@ -1,15 +1,6 @@
 {
-  "originHash" : "ad20f59fd91117f035a6bbfc930621ddf027193451a3c1409324f3b25f7b27e0",
+  "originHash" : "2655ce162944495f97126b34c61a1ad72a2143224cf97b16c29d92972a942497",
   "pins" : [
-    {
-      "identity" : "csqlite",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/stephencelis/CSQLite.git",
-      "state" : {
-        "revision" : "9106e983d5e3d5149ee35281ec089484b0def018",
-        "version" : "0.0.3"
-      }
-    },
     {
       "identity" : "filemonitor",
       "kind" : "remoteSourceControl",
@@ -26,6 +17,15 @@
       "state" : {
         "revision" : "bcc9f219900a62c4210e6db726035d7f03ae757b",
         "version" : "0.6.0"
+      }
+    },
+    {
+      "identity" : "progress.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jkandzi/Progress.swift",
+      "state" : {
+        "revision" : "fed6598735d7982058690acf8f52a0a5fdaeb3e0",
+        "version" : "0.4.0"
       }
     },
     {

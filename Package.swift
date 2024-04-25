@@ -14,7 +14,8 @@ let package = Package(
         .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.15.1"),
         .package(url: "https://github.com/JohnWickham/FileMonitor", from: "0.1.4-prerelease"),
         .package(url: "https://github.com/johnsundell/ink.git", from: "0.1.0"),
-        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0")
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.6.0"),
+        .package(url: "https://github.com/jkandzi/Progress.swift", from: "0.4.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -25,7 +26,8 @@ let package = Package(
             .product(name: "SQLite", package: "SQLite.swift"),
             .product(name: "FileMonitor", package: "FileMonitor"),
             .product(name: "Ink", package: "ink"),
-            .product(name: "SwiftSoup", package: "SwiftSoup")
+            .product(name: "SwiftSoup", package: "SwiftSoup"),
+            .product(name: "Progress", package: "Progress.swift")
         ]),
         .testTarget(name: "Postmark-Tests", dependencies: ["Postmark"], resources: [.copy("Example.md")])
     ]

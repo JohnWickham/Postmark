@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Progress
 
 struct PostProcessingTask: CustomDebugStringConvertible {
     let post: Post
@@ -83,7 +84,7 @@ struct PostProcessingQueue {
         var failedTasks: [PostProcessingTask] = []
         let duration = SuspendingClock().measure {
             // TODO: Dequeue tasks
-            for task in tasks {
+            for task in Progress(tasks) {
                 do {
                     try generateStaticContent(for: task.post, with: task.markdownDocument)
                     try addDatabaseEntries(for: task.post)
