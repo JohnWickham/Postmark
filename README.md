@@ -6,7 +6,23 @@ Postmark is a command-line tool to simplify the publishing of [Markdown](https:/
 
 Postmark is written in Swift and supports macOS.
 
-Support for Linux is pending Foundation API parity in [swift-corelibs-foundation](https://forums.swift.org/t/migration-plan-swift-corelibs-foundation-to-swift-foundation/70943) (and forthcoming [swift-foundation](https://github.com/apple/swift-foundation/) package) for types like `URL`, `FileManager`, and `Date`, which is [expected to continue to improve](https://github.com/apple/swift-foundation/tree/main?tab=readme-ov-file#development-focus-for-2023). In the meantime, Postmark will build successfully for Linux, but its behavior isn’t guaranteed, and so tests will not run on Linux.
+Support for Linux is limited, [pending more extensive platform support from Foundation](https://github.com/JohnWickham/Postmark/issues/1). In the meantime, Postmark will build successfully for Linux, but its behavior isn’t guaranteed, so tests will not run on Linux.
+
+## Getting Started
+
+Download the latest version of Postmark from this repository’s Github Releases, or build it:
+
+### On macOS
+
+Build Postmark using Xcode or `swift build`.
+
+### On Linux
+
+The recommended way to build for Linux is with Docker:
+
+1. From the project root directory, start a Docker container using the `swift:focal` image, mounting the project files to `/src` and starting a shell: `docker run --privileged -v "$(pwd):/src" -t -i swift:focal /bin/bash`
+2. Install `libsqlite3-dev` (required for SQLite.swift to compile): `apt install -y libsqlite3-dev`
+3. Run `swift build`
 
 ## Using Postmark
 
