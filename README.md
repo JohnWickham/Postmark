@@ -2,7 +2,9 @@
 
 Postmark is a command-line tool to simplify the publishing of [Markdown](https://daringfireball.net/projects/markdown) documents on the web. It watches a given content directory for changes to Markdown documents, generates static HTML files that can be served to browsers, and manages a SQLite database of articles.
 
-Postmark is written in Swift and supports macOS and Linux.
+## Platform Support
+
+Postmark is written in Swift and supports macOS. Support for Linux is pending Foundation API parity in [swift-corelibs-foundation](https://forums.swift.org/t/migration-plan-swift-corelibs-foundation-to-swift-foundation/70943) (and forthcoming [swift-foundation](https://github.com/apple/swift-foundation/) package) for types like `URL`, `FileManager`, and `Date`, which is [expected to continue to improve](https://github.com/apple/swift-foundation/tree/main?tab=readme-ov-file#development-focus-for-2023).
 
 ## Using Postmark
 
