@@ -1,13 +1,22 @@
 {
-  "originHash" : "f20c7a8f0d5d8be7ab07d46af27ffb6fe8a9d572836d04eeb1a319b06d831254",
+  "originHash" : "03edb8c19fd19b45a9b03553652fa2ad896f9985ebb9c160f4ec3f84169cf66c",
   "pins" : [
+    {
+      "identity" : "csqlite",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/stephencelis/CSQLite.git",
+      "state" : {
+        "revision" : "9106e983d5e3d5149ee35281ec089484b0def018",
+        "version" : "0.0.3"
+      }
+    },
     {
       "identity" : "filemonitor",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/JohnWickham/FileMonitor",
       "state" : {
-        "revision" : "093c4c82e6a7832f22ea0b21ff06b233d1edc779",
-        "version" : "0.1.1-prerelease"
+        "revision" : "adefab7c16261e4eca77b10c258a4e55bc95e1fb",
+        "version" : "0.1.4-prerelease"
       }
     },
     {
@@ -24,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/stephencelis/SQLite.swift.git",
       "state" : {
-        "revision" : "f0af5e0a2b6917ae38e3019e3456fd0fa9365864",
-        "version" : "0.15.1"
+        "revision" : "a95fc6df17d108bd99210db5e8a9bac90fe984b8",
+        "version" : "0.15.3"
       }
     },
     {
