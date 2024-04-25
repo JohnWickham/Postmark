@@ -1,5 +1,5 @@
 //
-//  FileChangeResponder.swift
+//  FileEventResponder.swift
 //
 //
 //  Created by John Wickham on 4/24/24.
@@ -8,7 +8,7 @@
 import FileMonitor
 import Foundation
 
-public struct FileChangeResponder: FileDidChangeDelegate {
+public struct FileEventResponder: FileDidChangeDelegate {
     
     public var contentDirectoryURL: URL
     public var shouldGenerateFragments: Bool
@@ -17,7 +17,6 @@ public struct FileChangeResponder: FileDidChangeDelegate {
         let fileHelper = PostFilesHelper(contentDirectoryURL: contentDirectoryURL)
         
         Log.shared.trace("File event: \(event.description)")
-        return;
         
         // TODO: If an added or modified Markdown file is an "orphan" (direct child of the content directory without a containing post folder), create a post folder and move the file into it.
         
