@@ -37,7 +37,7 @@ struct PostFilesHelper {
         // 2. It's a direct child of the content directory
         let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardizedFileURL, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants])
         
-        guard contentDirectoryContents.contains(fileURL.standardizedFileURL) else {
+        guard contentDirectoryContents.contains(fileURL.absoluteURL) else {
             Log.shared.trace("Directory \(fileURL.standardizedFileURL) is not in the content directory: \(contentDirectoryURL)")
             return false
         }
