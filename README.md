@@ -4,7 +4,9 @@ Postmark is a command-line tool to simplify the publishing of [Markdown](https:/
 
 ## Platform Support
 
-Postmark is written in Swift and supports macOS. Support for Linux is pending Foundation API parity in [swift-corelibs-foundation](https://forums.swift.org/t/migration-plan-swift-corelibs-foundation-to-swift-foundation/70943) (and forthcoming [swift-foundation](https://github.com/apple/swift-foundation/) package) for types like `URL`, `FileManager`, and `Date`, which is [expected to continue to improve](https://github.com/apple/swift-foundation/tree/main?tab=readme-ov-file#development-focus-for-2023).
+Postmark is written in Swift and supports macOS.
+
+Support for Linux is pending Foundation API parity in [swift-corelibs-foundation](https://forums.swift.org/t/migration-plan-swift-corelibs-foundation-to-swift-foundation/70943) (and forthcoming [swift-foundation](https://github.com/apple/swift-foundation/) package) for types like `URL`, `FileManager`, and `Date`, which is [expected to continue to improve](https://github.com/apple/swift-foundation/tree/main?tab=readme-ov-file#development-focus-for-2023). In the meantime, Postmark will build successfully for Linux, but its behavior isn’t guaranteed, and so tests will not run on Linux.
 
 ## Using Postmark
 

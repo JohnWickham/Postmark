@@ -80,7 +80,7 @@ public struct FileEventResponder: FileDidChangeDelegate {
                     
             case .childEvent(inFileAtPath: let filePath):
                 Log.shared.debug("Child event in: \(filePath)")
-                let postURL = URL(filePath: filePath)
+                let postURL = URL(fileURLWithPath: filePath)
                 
                 do {
                     guard try fileHelper.isPostFolder(postURL) else {

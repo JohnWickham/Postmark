@@ -12,9 +12,14 @@ struct Watch: ParsableCommand {
     static var configuration = CommandConfiguration(abstract: "Watch a given directory for changes and automatically generate static content and update database entries as appropriate.")
     
     @Argument(help: "The directory to monitor for changes in. Defaults to the current directory.", transform: { string in
+        // https://github.com/JohnWickham/Postmark/issues/1
+        #if os(macOS)
         return URL(filePath: string, directoryHint: .inferFromPath, relativeTo: .currentDirectory())
+        #elseif os(Linux)
+        return URL(fileURLWithPath: string, isDirectory: true)
+        #endif
     })
-    private var contentDirectoryURL: URL = URL(filePath: FileManager.default.currentDirectoryPath)
+    private var contentDirectoryURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
     
     @Option(name: [.customLong("db"), .long], help: "The path to the database file.")
     var databaseFile: String = "store.sqlite"
@@ -46,10 +51,15 @@ struct Regenerate: ParsableCommand {
     static var configuration = CommandConfiguration(abstract: "Regenerate all static content and/or database records for content in a given dirctory.")
     
     @Argument(help: "The content directory in which to detect and generate files. Defaults to the current directory.", transform: { string in
+        // https://github.com/JohnWickham/Postmark/issues/1
+        #if os(macOS)
         return URL(filePath: string, directoryHint: .inferFromPath, relativeTo: .currentDirectory())
+        #elseif os(Linux)
+        return URL(fileURLWithPath: string, isDirectory: true)
+        #endif
     })
-    private var contentDirectoryURL: URL = URL(filePath: FileManager.default.currentDirectoryPath)
-    
+    private var contentDirectoryURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
+
     @Option(name: [.customLong("db"), .long], help: "The path to the database file.")
     private var databaseFile: String = "store.sqlite"
     

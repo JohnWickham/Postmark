@@ -12,7 +12,8 @@ extension String {
     private static let slugSafeCharacters = CharacterSet(charactersIn: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-")
     
     func leadingWords(_ count: Int) -> String {
-        
+        // https://github.com/JohnWickham/Postmark/issues/1
+        #if os(macOS)
         var substringRanges: [Range<String.Index>] = []
         self.enumerateSubstrings(in: self.startIndex..., options: .byWords) { _, substringRange, _, _ in
             substringRanges.append(substringRange)
@@ -25,6 +26,16 @@ extension String {
         } else {
             return self
         }
+        
+        #elseif os(Linux)
+        let maxCharacters = 175
+        if self.count > maxCharacters - 1 {
+            return String(self.prefix(maxCharacters))
+        }
+        else {
+            return self
+        }
+        #endif
     }
     
     func makeSlug() -> String? {

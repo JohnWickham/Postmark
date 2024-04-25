@@ -150,8 +150,14 @@ public class Post: Codable {
             return nil
         }
         
+        // https://github.com/JohnWickham/Postmark/issues/1
+        #if os(macOS)
         let parseStrategy = Date.ParseStrategy(format: "\(year: .defaultDigits)-\(month: .twoDigits)-\(day: .twoDigits)", timeZone: .current)
         return try? Date(string, strategy: parseStrategy)
+        #elseif os(Linux)
+        // TODO: Provide a suitable workaround for Linux
+        return Date()
+        #endif
     }
 }
 
