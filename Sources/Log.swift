@@ -6,11 +6,18 @@
 //
 
 import Logging
+import ArgumentParser
 
 class Log {
-    public static let shared = {
+    public static var shared = {
         var logger = Logger(label: "com.wickham.Postmark")
-        logger.logLevel = .trace
+        logger.logLevel = .info
         return logger
     }()
+}
+
+extension Logger.Level: ExpressibleByArgument {
+    public init?(argument: String) {
+        self.init(rawValue: argument)
+    }
 }

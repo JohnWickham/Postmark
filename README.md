@@ -29,28 +29,30 @@ The recommended way to build for Linux is with Docker:
 ### Watch a directory
 To watch a directory and automatically generate for changes to Markdown files: `postmark watch [<content-directory-url>] [--db <db>]`.
 
-`<content-directory-url>` defaults to the current working directory.
+`<content-directory-url>` defaults to `./content/`.
 
 Example: `postmark watch /opt/posts/content/`
 
 Options:
 
-- `--db, --database-file`: Specify a path to the database file. Defaults to `store.sqlite` in the current working directory.
+- `-db, --database-file`: Specify a path to the database file. Default: `./store.sqlite`.
 - `-f, --fragments`: Generate HTML fragments for posts, instead of fully-formed HTML documents.
+- `-l, --log-level`: Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: `info`.
 
 Postmark uses Inotify events to detect file-system changes on Linux, and FSEvents on macOS.
 
 ### Regenerate content
 To regenerate all content and/or database entries: `postmark regenerate [<content-directory-url>] [--db <db>] [--db-only <db-only>] [--dry-run]`.
 
-`<content-directory-url>` defaults to the current working directory.
+`<content-directory-url>` defaults to `./content/`.
 
 Options:
 
-- `--db, --database-file`: Specify a path to the database file. Defaults to `store.sqlite` in the current working directory.
+- `-db, --database-file`: Specify a path to the database file. Default: `./store.sqlite`.
 - `--db-only, --database-only`: Regenerate database entries without altering static content files. (default: false).
-- `-f, --fragments`: Generate HTML fragments for posts, instead of fully-formed HTML documents.
 - `--dry-run`: Output a summary of all changes to be made, without actaully committing them.
+- `-f, --fragments`: Generate HTML fragments for posts, instead of fully-formed HTML documents.
+- `-l, --log-level`: Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: `info`.
 
 ## File Organization
 

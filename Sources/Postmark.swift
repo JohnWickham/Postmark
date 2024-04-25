@@ -1,6 +1,7 @@
 import Foundation
 import ArgumentParser
 import FileMonitor
+import Logging
 
 @main
 struct Postmark: ParsableCommand {
@@ -11,31 +12,31 @@ struct Watch: ParsableCommand {
     
     static var configuration = CommandConfiguration(abstract: "Watch a given directory for changes and automatically generate static content and update database entries as appropriate.")
     
-    @Argument(help: "The directory to monitor for changes in. Defaults to the current directory.", transform: { string in
-        // https://github.com/JohnWickham/Postmark/issues/1
-        #if os(macOS)
-        return URL(filePath: string, directoryHint: .inferFromPath, relativeTo: .currentDirectory())
-        #elseif os(Linux)
-        return URL(fileURLWithPath: string, isDirectory: true)
-        #endif
+    @Argument(help: "The content directory in which to detect and generate files. Default: `./content/`.", transform: { string in
+        return URL.currentDirectory().relativeURLForPath(string, directoryHint: .isDirectory)
     })
-    private var contentDirectoryURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
+    var contentDirectoryURL: URL = URL(filePath: "content", directoryHint: .isDirectory, relativeTo: .currentDirectory())
+
+    @Option(name: [.customLong("db", withSingleDash: true), .customLong("database-file")], help: "The path to the database file. Default: `./store.sqlite`.", transform: { string in
+        return URL.currentDirectory().relativeURLForPath(string, directoryHint: .notDirectory)
+    })
+    var databaseFileURL: URL = URL(filePath: "store.sqlite", directoryHint: .notDirectory, relativeTo: .currentDirectory())
     
-    @Option(name: [.customLong("db"), .long], help: "The path to the database file.")
-    var databaseFile: String = "store.sqlite"
+    @Option(name: [.customShort("l"), .long], help: "Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: info.")
+    var logLevel: Logger.Level = .info
     
     @Flag(name: [.customShort("f"), .customLong("fragments")], help: "Generate HTML fragments for posts, instead of fully-formed HTML documents.")
     var generateFragments: Bool = false
     
     public func run() {
-        let databaseFileURL = URL(fileURLWithPath: databaseFile, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
-      
+        Log.shared.logLevel = logLevel
+        
         do {
             try DataStore.shared.open(databaseFile: databaseFileURL)
             let changeHandler = FileEventResponder(contentDirectoryURL: contentDirectoryURL, shouldGenerateFragments: generateFragments)
             let monitor = try FileMonitor(directory: contentDirectoryURL, delegate: changeHandler, options: nil)
             try monitor.start()
-            Log.shared.info("Postmark is watching for changes in \(contentDirectoryURL)")
+            Log.shared.info("Postmark is watching for changes in \(contentDirectoryURL.absoluteURL.path())")
         }
         catch {
             Postmark.exit(withError: error)
@@ -50,21 +51,21 @@ struct Regenerate: ParsableCommand {
     
     static var configuration = CommandConfiguration(abstract: "Regenerate all static content and/or database records for content in a given dirctory.")
     
-    @Argument(help: "The content directory in which to detect and generate files. Defaults to the current directory.", transform: { string in
-        // https://github.com/JohnWickham/Postmark/issues/1
-        #if os(macOS)
-        return URL(filePath: string, directoryHint: .inferFromPath, relativeTo: .currentDirectory())
-        #elseif os(Linux)
-        return URL(fileURLWithPath: string, isDirectory: true)
-        #endif
+    @Argument(help: "The content directory in which to detect and generate files. Default: `./content/`.", transform: { string in
+        return URL.currentDirectory().relativeURLForPath(string, directoryHint: .isDirectory)
     })
-    private var contentDirectoryURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
+    var contentDirectoryURL: URL = URL(filePath: "content", directoryHint: .isDirectory, relativeTo: .currentDirectory())
 
-    @Option(name: [.customLong("db"), .long], help: "The path to the database file.")
-    private var databaseFile: String = "store.sqlite"
+    @Option(name: [.customLong("db", withSingleDash: true), .customLong("database-file")], help: "The path to the database file. Default: `./store.sqlite`.", transform: { string in
+        return URL.currentDirectory().relativeURLForPath(string, directoryHint: .notDirectory)
+    })
+    var databaseFileURL: URL = URL(filePath: "store.sqlite", directoryHint: .notDirectory, relativeTo: .currentDirectory())
+    
+    @Option(name: [.customShort("l"), .long], help: "Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: info.")
+    var logLevel: Logger.Level = .info
     
     @Option(name: [.customLong("db-only"), .customLong("database-only")], help: "Regenerate database entries without altering static content files.")
-    private var processDatabaseOnly: Bool = false
+    var processDatabaseOnly: Bool = false
     
     @Flag(name: [.customShort("f"), .customLong("fragments")], help: "Generate HTML fragments for posts, instead of fully-formed HTML documents.")
     var generateFragments: Bool = false
@@ -73,22 +74,22 @@ struct Regenerate: ParsableCommand {
     var dryRun: Bool = false
 
     public func run() {
+        Log.shared.logLevel = logLevel
+        
         let fileHelper = PostFilesHelper(contentDirectoryURL: contentDirectoryURL)
         
         if dryRun {
             Log.shared.info("Dry run: the following changes won't be committed.")
         }
         
-        let databaseFileURL = URL(fileURLWithPath: databaseFile, relativeTo: URL(string: FileManager.default.currentDirectoryPath))
-        
         do {
             if !dryRun {
-                try DataStore.shared.open(databaseFile: databaseFileURL.standardized)
+                try DataStore.shared.open(databaseFile: databaseFileURL)
                 try DataStore.shared.deleteAllPosts()
             }
             
             let allPostDirectories = fileHelper.postDirectories
-            Log.shared.debug("Found post \(allPostDirectories.count) in \(contentDirectoryURL.standardizedFileURL)")
+            Log.shared.info("Found \(allPostDirectories.count) post\(allPostDirectories.count == 1 ? "" : "s") in \(contentDirectoryURL.absoluteURL.path())")
             var processingOptions: PostProcessingQueue.ProcessingOptions = []
             if dryRun {
                 processingOptions.insert(.dryRun)
@@ -96,7 +97,7 @@ struct Regenerate: ParsableCommand {
             if generateFragments {
                 processingOptions.insert(.generateFragments)
             }
-            let processingQueue = try PostProcessingQueue(postDirectories: allPostDirectories, in: contentDirectoryURL.standardizedFileURL, options: processingOptions)
+            let processingQueue = try PostProcessingQueue(postDirectories: allPostDirectories, in: contentDirectoryURL, options: processingOptions)
             try processingQueue.process()
 
         }
