@@ -22,7 +22,7 @@ public enum contentGeneratingMode {
 }
 
 // Manages the pipeline of generating content and database entries for a post.
-struct PostProcessingQueue {
+class PostProcessingQueue {
     
     public struct ProcessingOptions: OptionSet {
         public var rawValue: Int
@@ -80,11 +80,16 @@ struct PostProcessingQueue {
     }
     
     public func process() throws {
-        Log.shared.trace("Processing \(tasks.count) post\(tasks.count == 1 ? "" : "s")")
+        let initialTasksCount = tasks.count
+        Log.shared.trace("Processing \(initialTasksCount) post\(initialTasksCount == 1 ? "" : "s")")
+        
         var failedTasks: [PostProcessingTask] = []
         let duration = SuspendingClock().measure {
-            // TODO: Dequeue tasks
-            for task in Progress(tasks) {
+            
+            // Dequeue and process tasks
+            while tasks.count > 0 {
+                let task = tasks.removeFirst()
+                
                 do {
                     try generateStaticContent(for: task.post, with: task.markdownDocument)
                     try addDatabaseEntries(for: task.post)
@@ -94,8 +99,10 @@ struct PostProcessingQueue {
                     failedTasks.append(task)
                 }
             }
+            
         }
-        let successfulTaskCount = tasks.count - failedTasks.count
+        
+        let successfulTaskCount = initialTasksCount - failedTasks.count
         Log.shared.trace("Finished processing \(successfulTaskCount) post\(successfulTaskCount == 1 ? "" : "s") in \(duration.description). \(failedTasks.count) posts failed to process.")
     }
     

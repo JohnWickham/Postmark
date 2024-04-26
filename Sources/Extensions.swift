@@ -64,16 +64,3 @@ extension String {
     }
     
 }
-
-extension URL {
-    
-    func relativeURLForPath(_ pathArgument: String, directoryHint: URL.DirectoryHint) -> URL {
-        // https://github.com/JohnWickham/Postmark/issues/1
-        #if os(macOS)
-        return URL(filePath: pathArgument, directoryHint: directoryHint, relativeTo: self)
-        #elseif os(Linux)
-        return URL(fileURLWithPath: pathArgument, isDirectory: true)
-        #endif
-    }
-    
-}

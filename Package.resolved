@@ -1,6 +1,15 @@
 {
-  "originHash" : "2655ce162944495f97126b34c61a1ad72a2143224cf97b16c29d92972a942497",
+  "originHash" : "2b469d3c4827e98175e38515b168e44c84a20209285ebcca2c359addc51f3466",
   "pins" : [
+    {
+      "identity" : "csqlite",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/stephencelis/CSQLite.git",
+      "state" : {
+        "revision" : "9106e983d5e3d5149ee35281ec089484b0def018",
+        "version" : "0.0.3"
+      }
+    },
     {
       "identity" : "filemonitor",
       "kind" : "remoteSourceControl",

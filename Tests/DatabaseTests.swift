@@ -12,7 +12,7 @@ final class DatabaseTests: XCTestCase {
 
     private var databaseFileURL: URL {
         let temporaryDirectory = FileManager.default.temporaryDirectory
-        return URL(fileURLWithPath: "store.sqlite", relativeTo: temporaryDirectory)
+        return URL(fileURLWithPath: "postmark.sqlite", relativeTo: temporaryDirectory)
     }
     
     // TODO: Populate the database with a set of test data

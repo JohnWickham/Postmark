@@ -13,14 +13,14 @@ struct Watch: ParsableCommand {
     static var configuration = CommandConfiguration(abstract: "Watch a given directory for changes and automatically generate static content and update database entries as appropriate.")
     
     @Argument(help: "The content directory in which to detect and generate files. Default: `./content/`.", transform: { string in
-        return URL.currentDirectory().relativeURLForPath(string, directoryHint: .isDirectory)
+        return URL(fileURLWithPath: string, relativeTo: .currentDirectory())
     })
-    var contentDirectoryURL: URL = URL(filePath: "content", directoryHint: .isDirectory, relativeTo: .currentDirectory())
+    var contentDirectoryURL: URL = URL(fileURLWithPath: "content", relativeTo: .currentDirectory())
 
-    @Option(name: [.customLong("db", withSingleDash: true), .customLong("database-file")], help: "The path to the database file. Default: `./store.sqlite`.", transform: { string in
-        return URL.currentDirectory().relativeURLForPath(string, directoryHint: .notDirectory)
+    @Option(name: [.customLong("db", withSingleDash: true), .customLong("database-file")], help: "The path to the database file. Default: `./postmark.sqlite`.", transform: { string in
+        return URL(fileURLWithPath: string, relativeTo: .currentDirectory())
     })
-    var databaseFileURL: URL = URL(filePath: "store.sqlite", directoryHint: .notDirectory, relativeTo: .currentDirectory())
+    var databaseFileURL: URL = URL(fileURLWithPath: "postmark.sqlite", relativeTo: .currentDirectory())
     
     @Option(name: [.customShort("l"), .long], help: "Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: info.")
     var logLevel: Logger.Level = .info
@@ -52,14 +52,14 @@ struct Regenerate: ParsableCommand {
     static var configuration = CommandConfiguration(abstract: "Regenerate all static content and/or database records for content in a given dirctory.")
     
     @Argument(help: "The content directory in which to detect and generate files. Default: `./content/`.", transform: { string in
-        return URL.currentDirectory().relativeURLForPath(string, directoryHint: .isDirectory)
+        return URL(fileURLWithPath: string, relativeTo: .currentDirectory())
     })
-    var contentDirectoryURL: URL = URL(filePath: "content", directoryHint: .isDirectory, relativeTo: .currentDirectory())
+    var contentDirectoryURL: URL = URL(fileURLWithPath: "content", relativeTo: .currentDirectory())
 
-    @Option(name: [.customLong("db", withSingleDash: true), .customLong("database-file")], help: "The path to the database file. Default: `./store.sqlite`.", transform: { string in
-        return URL.currentDirectory().relativeURLForPath(string, directoryHint: .notDirectory)
+    @Option(name: [.customLong("db", withSingleDash: true), .customLong("database-file")], help: "The path to the database file. Default: `./postmark.sqlite`.", transform: { string in
+        return URL(filePath: string).standardizedFileURL
     })
-    var databaseFileURL: URL = URL(filePath: "store.sqlite", directoryHint: .notDirectory, relativeTo: .currentDirectory())
+    var databaseFileURL: URL = URL(fileURLWithPath: "postmark.sqlite", relativeTo: .currentDirectory())
     
     @Option(name: [.customShort("l"), .long], help: "Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: info.")
     var logLevel: Logger.Level = .info

@@ -17,7 +17,7 @@ final class GeneratorPipelineTests: XCTestCase {
     
     private var databaseFileURL: URL {
         let temporaryDirectory = FileManager.default.temporaryDirectory
-        return URL(fileURLWithPath: "store.sqlite", relativeTo: temporaryDirectory)
+        return URL(fileURLWithPath: "postmark.sqlite", relativeTo: temporaryDirectory)
     }
     
     private var exampleContentFileURL: URL? {

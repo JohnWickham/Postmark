@@ -35,7 +35,7 @@ Example: `postmark watch /opt/posts/content/`
 
 Options:
 
-- `-db, --database-file`: Specify a path to the database file. Default: `./store.sqlite`.
+- `-db, --database-file`: Specify a path to the database file. Default: `./postmark.sqlite`.
 - `-f, --fragments`: Generate HTML fragments for posts, instead of fully-formed HTML documents.
 - `-l, --log-level`: Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: `info`.
 
@@ -48,7 +48,7 @@ To regenerate all content and/or database entries: `postmark regenerate [<conten
 
 Options:
 
-- `-db, --database-file`: Specify a path to the database file. Default: `./store.sqlite`.
+- `-db, --database-file`: Specify a path to the database file. Default: `./postmark.sqlite`.
 - `--db-only, --database-only`: Regenerate database entries without altering static content files. (default: false).
 - `--dry-run`: Output a summary of all changes to be made, without actaully committing them.
 - `-f, --fragments`: Generate HTML fragments for posts, instead of fully-formed HTML documents.
