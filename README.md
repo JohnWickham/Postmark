@@ -96,6 +96,13 @@ The metadata header can specify the following properties:
 
 All properties are optional, and any other properties in the header are ignored.
 
+### Publish status
+
+There are two ways to specify the `status` for a post:
+
+1. Add it to the [metadata header](#metadata) of the post’s Markdown document, or;
+2. Suffix the name of the post’s folder with `.draft` or `.private`. Postmark will ignore trailing “extensions“ in folder names when determining a post’s slug. (`public` is the default status, and `.hidden` is an alias for `.private`).
+
 ## SQLite Database
 
 Postmark maintains a SQLite database of articles it has processed. This allows other applications to provide options for browsing content that are more robust than static serving. Postmark considers the [source of truth for published content](#generating-fragments) to be the original files; the database is mearly an efficient means of analyzing what content exists. To specify a database file, see [Using Postmark](#using-postmark).
