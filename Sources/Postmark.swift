@@ -12,15 +12,17 @@ struct Watch: ParsableCommand {
     
     static var configuration = CommandConfiguration(abstract: "Watch a given directory for changes and automatically generate static content and update database entries as appropriate.")
     
+    private static let currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    
     @Argument(help: "The content directory in which to detect and generate files. Default: `./content/`.", transform: { string in
-        return URL(fileURLWithPath: string, relativeTo: .currentDirectory())
+        return URL(fileURLWithPath: string, relativeTo: Watch.currentDirectoryURL)
     })
-    var contentDirectoryURL: URL = URL(fileURLWithPath: "content", relativeTo: .currentDirectory())
+    var contentDirectoryURL: URL = URL(fileURLWithPath: "content", relativeTo: Watch.currentDirectoryURL)
 
     @Option(name: [.customLong("db", withSingleDash: true), .customLong("database-file")], help: "The path to the database file. Default: `./postmark.sqlite`.", transform: { string in
-        return URL(fileURLWithPath: string, relativeTo: .currentDirectory())
+        return URL(fileURLWithPath: string, relativeTo: Watch.currentDirectoryURL)
     })
-    var databaseFileURL: URL = URL(fileURLWithPath: "postmark.sqlite", relativeTo: .currentDirectory())
+    var databaseFileURL: URL = URL(fileURLWithPath: "postmark.sqlite", relativeTo: Watch.currentDirectoryURL)
     
     @Option(name: [.customShort("l"), .long], help: "Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: info.")
     var logLevel: Logger.Level = .info
@@ -36,7 +38,7 @@ struct Watch: ParsableCommand {
             let changeHandler = FileEventResponder(contentDirectoryURL: contentDirectoryURL, shouldGenerateFragments: generateFragments)
             let monitor = try FileMonitor(directory: contentDirectoryURL, delegate: changeHandler, options: nil)
             try monitor.start()
-            Log.shared.info("Postmark is watching for changes in \(contentDirectoryURL.absoluteURL.path())")
+            Log.shared.info("Postmark is watching for changes in \(contentDirectoryURL.absoluteURL.path)")
         }
         catch {
             Postmark.exit(withError: error)
@@ -51,15 +53,17 @@ struct Regenerate: ParsableCommand {
     
     static var configuration = CommandConfiguration(abstract: "Regenerate all static content and/or database records for content in a given dirctory.")
     
+    private static let currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    
     @Argument(help: "The content directory in which to detect and generate files. Default: `./content/`.", transform: { string in
-        return URL(fileURLWithPath: string, relativeTo: .currentDirectory())
+        return URL(fileURLWithPath: string, relativeTo: Regenerate.currentDirectoryURL)
     })
-    var contentDirectoryURL: URL = URL(fileURLWithPath: "content", relativeTo: .currentDirectory())
+    var contentDirectoryURL: URL = URL(fileURLWithPath: "content", relativeTo: Regenerate.currentDirectoryURL)
 
     @Option(name: [.customLong("db", withSingleDash: true), .customLong("database-file")], help: "The path to the database file. Default: `./postmark.sqlite`.", transform: { string in
-        return URL(filePath: string).standardizedFileURL
+        return URL(fileURLWithPath: string).standardizedFileURL
     })
-    var databaseFileURL: URL = URL(fileURLWithPath: "postmark.sqlite", relativeTo: .currentDirectory())
+    var databaseFileURL: URL = URL(fileURLWithPath: "postmark.sqlite", relativeTo: Regenerate.currentDirectoryURL)
     
     @Option(name: [.customShort("l"), .long], help: "Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: info.")
     var logLevel: Logger.Level = .info
@@ -89,7 +93,7 @@ struct Regenerate: ParsableCommand {
             }
             
             let allPostDirectories = fileHelper.postDirectories
-            Log.shared.info("Found \(allPostDirectories.count) post\(allPostDirectories.count == 1 ? "" : "s") in \(contentDirectoryURL.absoluteURL.path())")
+            Log.shared.info("Found \(allPostDirectories.count) post\(allPostDirectories.count == 1 ? "" : "s") in \(contentDirectoryURL.absoluteURL.path)")
             var processingOptions: PostProcessingQueue.ProcessingOptions = []
             if dryRun {
                 processingOptions.insert(.dryRun)
