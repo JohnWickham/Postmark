@@ -27,7 +27,7 @@ The recommended way to build for Linux is with Docker:
 ## Using Postmark
 
 ### Watch a directory
-To watch a directory and automatically generate for changes to Markdown files: `postmark watch [<content-directory-url>] [--db <db>]`.
+To watch a directory and automatically generate for changes to Markdown files: `postmark watch [<content-directory-url>] [--db <db>] [--log-level <log-level>] [--fragments]`.
 
 `<content-directory-url>` defaults to `./content/`.
 
@@ -42,7 +42,7 @@ Options:
 Postmark uses Inotify events to detect file-system changes on Linux, and FSEvents on macOS.
 
 ### Regenerate content
-To regenerate all content and/or database entries: `postmark regenerate [<content-directory-url>] [--db <db>] [--db-only <db-only>] [--dry-run]`.
+To regenerate all content and/or database entries: `postmark regenerate [<content-directory-url>] [-db <db>] [--log-level <log-level>] [--db-only <db-only>] [--fragments] [--dry-run]`.
 
 `<content-directory-url>` defaults to `./content/`.
 
