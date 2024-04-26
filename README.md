@@ -42,14 +42,14 @@ Options:
 Postmark uses Inotify events to detect file-system changes on Linux, and FSEvents on macOS.
 
 ### Regenerate content
-To regenerate all content and/or database entries: `postmark regenerate [<content-directory-url>] [-db <db>] [--log-level <log-level>] [--db-only <db-only>] [--fragments] [--dry-run]`.
+To regenerate all content and/or database entries: `postmark regenerate [<content-directory-url>] [-db <db>] [--log-level <log-level>] [--db-only] [--fragments] [--dry-run]`.
 
 `<content-directory-url>` defaults to `./content/`.
 
 Options:
 
 - `-db, --database-file`: Specify a path to the database file. Default: `./postmark.sqlite`.
-- `--db-only, --database-only`: Regenerate database entries without altering static content files. (default: false).
+- `--db-only, --database-only`: Regenerate database entries without altering static content files.
 - `--dry-run`: Output a summary of all changes to be made, without actaully committing them.
 - `-f, --fragments`: Generate HTML fragments for posts, instead of fully-formed HTML documents.
 - `-l, --log-level`: Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: `info`.

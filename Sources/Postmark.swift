@@ -68,7 +68,7 @@ struct Regenerate: ParsableCommand {
     @Option(name: [.customShort("l"), .long], help: "Level of log output to display (trace, debug, info, notice, warning, error, critical). Default: info.")
     var logLevel: Logger.Level = .info
     
-    @Option(name: [.customLong("db-only"), .customLong("database-only")], help: "Regenerate database entries without altering static content files.")
+    @Flag(name: [.customLong("db-only"), .customLong("database-only")], help: "Regenerate database entries without altering static content files.")
     var processDatabaseOnly: Bool = false
     
     @Flag(name: [.customShort("f"), .customLong("fragments")], help: "Generate HTML fragments for posts, instead of fully-formed HTML documents.")
