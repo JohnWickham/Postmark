@@ -7,7 +7,6 @@
 
 import Foundation
 import XCTest
-@testable import Postmark
 
 // This test case is more of a playground for validating URL logic. It's really only testing Foundation URL methods, it probably should be removed.
 

@@ -7,7 +7,7 @@
 
 import XCTest
 import FileMonitor
-@testable import Postmark
+@testable import postmark
 
 final class GeneratorPipelineTests: XCTestCase {
     

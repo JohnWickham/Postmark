@@ -5,7 +5,7 @@
 //  Created by John Wickham on 4/21/24.
 //
 
-import Postmark
+import postmark
 import XCTest
 
 final class StaticContentGeneratorTests: XCTestCase {
