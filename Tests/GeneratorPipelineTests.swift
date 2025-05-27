@@ -59,14 +59,14 @@ final class GeneratorPipelineTests: XCTestCase {
         try monitor.start()
         
         // Move the test post folder inside the watched content directory
-        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appending(path: "test-post", directoryHint: .isDirectory)
+        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true)
         try FileManager.default.moveItem(at: testPostFolderTemporaryURL, to: testPostFolderInContentDirectoryURL)
         
         // Wait for processing to finish (?)
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             processingDelayExpectation.fulfill()
         }
-        wait(for: [processingDelayExpectation])
+        wait(for: [processingDelayExpectation], timeout: 10)
         
         // Assert that an HTML fragment file was produced in the tset post folder
         let generatedContentFileURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true).appendingPathComponent("index.html")
@@ -84,7 +84,7 @@ final class GeneratorPipelineTests: XCTestCase {
     // Test that content is generated when a new Markdown file is added to an existing folder
     func testAddedPostFile() throws {
         // Create a test post folder inside the watched content directory
-        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appending(path: "test-post", directoryHint: .isDirectory)
+        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true)
         try FileManager.default.createDirectory(at: testPostFolderInContentDirectoryURL, withIntermediateDirectories: true)
         
         let countOfDatabasePostsBeforeProcessing = try DataStore.shared.getCountOfPosts()
@@ -93,7 +93,12 @@ final class GeneratorPipelineTests: XCTestCase {
         
         // Start watching the content directory
         let responder = FileEventResponder(contentDirectoryURL: testContentDirectoryURL, shouldGenerateFragments: true)
+        #if os(Linux)
+        let monitor = try FileMonitor(directory: testContentDirectoryURL, delegate: responder, options: [.allEvents])
+        #else
         let monitor = try FileMonitor(directory: testContentDirectoryURL, delegate: responder, options: [.markSelf])
+        #endif
+        
         try monitor.start()
         
         // Move the sample content file into the post folder
@@ -106,7 +111,7 @@ final class GeneratorPipelineTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
             processingDelayExpectation.fulfill()
         }
-        wait(for: [processingDelayExpectation])
+        wait(for: [processingDelayExpectation], timeout: 10)
         
         // Assert that an HTML fragment file was produced in the tset post folder
         let generatedContentFileURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true).appendingPathComponent("index.html")
@@ -124,7 +129,7 @@ final class GeneratorPipelineTests: XCTestCase {
     
     func testModifiedPostFile() throws {
         // Create a test post folder inside the watched content directory
-        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appending(path: "test-post", directoryHint: .isDirectory)
+        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true)
         try FileManager.default.createDirectory(at: testPostFolderInContentDirectoryURL, withIntermediateDirectories: true)
         
         // Move the sample content file into the post folder
@@ -138,7 +143,7 @@ final class GeneratorPipelineTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             artificialDelayExpectation.fulfill()
         }
-        wait(for: [artificialDelayExpectation])
+        wait(for: [artificialDelayExpectation], timeout: 10)
         
         let countOfDatabasePostsBeforeProcessing = try DataStore.shared.getCountOfPosts()
         
@@ -159,7 +164,7 @@ final class GeneratorPipelineTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             processingDelayExpectation.fulfill()
         }
-        wait(for: [processingDelayExpectation])
+        wait(for: [processingDelayExpectation], timeout: 10)
         
         // Assert that an HTML fragment file was produced in the tset post folder
         let generatedContentFileURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true).appendingPathComponent("index.html")
@@ -176,7 +181,7 @@ final class GeneratorPipelineTests: XCTestCase {
     // Test that the post is removed from the database when a post file is deleted (but the directory remains)
     func testPostFileDeleted() throws {
         // Create a test post folder inside the watched content directory
-        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appending(path: "test-post", directoryHint: .isDirectory)
+        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true)
         try FileManager.default.createDirectory(at: testPostFolderInContentDirectoryURL, withIntermediateDirectories: true)
         
         let countOfDatabasePostsBeforeProcessing = try DataStore.shared.getCountOfPosts()
@@ -199,7 +204,7 @@ final class GeneratorPipelineTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
             addProcessingDelayExpectation.fulfill()
         }
-        wait(for: [addProcessingDelayExpectation])
+        wait(for: [addProcessingDelayExpectation], timeout: 10)
         
         // Assert that an HTML fragment file was produced in the tset post folder
         let generatedContentFileURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true).appendingPathComponent("index.html")
@@ -216,7 +221,7 @@ final class GeneratorPipelineTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             deleteProcessingDelayExpectation.fulfill()
         }
-        wait(for: [deleteProcessingDelayExpectation])
+        wait(for: [deleteProcessingDelayExpectation], timeout: 10)
         
         let countOfDatabasePostsAfterDeleting = try DataStore.shared.getCountOfPosts()
         assert(countOfDatabasePostsAfterDeleting == countOfDatabasePostsAfterProcessing - 1)
@@ -226,7 +231,7 @@ final class GeneratorPipelineTests: XCTestCase {
     // Test that the post is removed from teh databse when a post folder (containing a Markdown file) is deleted
     func testPostFolderDeleted() throws {
         // Create a test post folder inside the watched content directory
-        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appending(path: "test-post", directoryHint: .isDirectory)
+        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true)
         try FileManager.default.createDirectory(at: testPostFolderInContentDirectoryURL, withIntermediateDirectories: true)
         
         // Move the sample content file into the post folder
@@ -239,7 +244,7 @@ final class GeneratorPipelineTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             artificialDelayExpectation.fulfill()
         }
-        wait(for: [artificialDelayExpectation])
+        wait(for: [artificialDelayExpectation], timeout: 10)
         
         let countOfDatabasePostsBeforeProcessing = try DataStore.shared.getCountOfPosts()
         
@@ -257,7 +262,7 @@ final class GeneratorPipelineTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             addProcessingDelayExpectation.fulfill()
         }
-        wait(for: [addProcessingDelayExpectation])
+        wait(for: [addProcessingDelayExpectation], timeout: 10)
         
         // Assert that a post row was added to the database
         let countOfDatabasePostsAfterProcessing = try DataStore.shared.getCountOfPosts()
@@ -270,7 +275,7 @@ final class GeneratorPipelineTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             deleteProcessingDelayExpectatino.fulfill()
         }
-        wait(for: [deleteProcessingDelayExpectatino])
+        wait(for: [deleteProcessingDelayExpectatino], timeout: 10)
         
         let countOfDatabasePostsAfterDeleting = try DataStore.shared.getCountOfPosts()
         assert(countOfDatabasePostsAfterDeleting == countOfDatabasePostsAfterProcessing - 1)
