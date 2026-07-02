@@ -84,11 +84,44 @@ public class DataStore {
         return try connection.scalar(postsTable.count)
     }
     
+    func getPost(with slug: String) throws -> Post? {
+        let postQuery = postsTable.filter(slugColumn == slug)
+        guard let row = try connection.pluck(postQuery) else {
+            return nil
+        }
+        let createdDateStringColumn = Expression<String>("createdDate")
+        let updatedDateStringColumn = Expression<String?>("updatedDate")
+        
+        return Post(
+            slug: row[slugColumn],
+            title: row[titleColumn],
+            topics: try getTopics(forPostWith: slug),
+            createdDate: DataStore.date(fromStoredString: row[createdDateStringColumn]) ?? Date(),
+            updatedDate: DataStore.date(fromStoredString: row[updatedDateStringColumn]),
+            publishStatus: Post.PublishStatus(rawValue: row[publishStatusColumn]) ?? .public,
+            previewContent: row[previewContentColumm],
+            hasGeneratedContent: row[hasGeneratedContentColumn]
+        )
+    }
+    
+    private static func date(fromStoredString string: String?) -> Date? {
+        guard let string = string else {
+            return nil
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter.date(from: string)
+    }
+    
     /* Updates a Post, inserting if it does not exist. */
     public func addOrUpdate(_ post: Post) throws {
         Log.shared.trace("Will insert post: \(post)")
         try connection.transaction {
             try connection.run(postsTable.upsert(post, onConflictOf: slugColumn))
+            try deleteTopics(forPostWith: post.slug)
             if let topics = post.topics {
                 for topic in topics {
                     try addOrUpdate(topic)
@@ -120,8 +153,22 @@ public class DataStore {
     
     public func deleteTopics(forPostWith slug: String) throws {
         Log.shared.trace("Will delete topics for post: \(slug)")
-        let topics = postTopicRelationshipTable.join(topicsTable, on: postSlugRelationColumn == slugColumn)
-        try connection.run(topics.delete())
+        let relationships = postTopicRelationshipTable.filter(postSlugRelationColumn == slug)
+        try connection.run(relationships.delete())
+    }
+    
+    func getTopics(forPostWith slug: String) throws -> [Topic] {
+        let relationshipRows = try connection.prepare(postTopicRelationshipTable.filter(postSlugRelationColumn == slug))
+        var topics: [Topic] = []
+        
+        for relationshipRow in relationshipRows {
+            let topicSlug = relationshipRow[topicSlugRelationColumn]
+            if let topicRow = try connection.pluck(topicsTable.filter(slugColumn == topicSlug)) {
+                topics.append(Topic(slug: topicRow[slugColumn], title: topicRow[titleColumn]))
+            }
+        }
+        
+        return topics
     }
     
     // MARK: Post-Topic Relationship

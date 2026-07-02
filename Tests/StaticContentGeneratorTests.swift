@@ -10,76 +10,68 @@ import XCTest
 
 final class StaticContentGeneratorTests: XCTestCase {
     
-    private static var testPostDirectoryURL: URL {
-        return FileManager.default.temporaryDirectory.appendingPathComponent("example-post")
-    }
-    
+    private var testDirectoryURL: URL!
+    private var testPostDirectoryURL: URL!
     private static let testPost = Post(slug: "example-post", title: "Example Post", topics: [], createdDate: Date(), publishStatus: .public)
     
     override func setUpWithError() throws {
-        try deleteExistingContents()
-        try FileManager.default.createDirectory(at: StaticContentGeneratorTests.testPostDirectoryURL, withIntermediateDirectories: true)
+        testDirectoryURL = try makeTemporaryDirectory()
+        testPostDirectoryURL = testDirectoryURL.appendingPathComponent("example-post", isDirectory: true)
+        try FileManager.default.createDirectory(at: testPostDirectoryURL, withIntermediateDirectories: true)
         guard let exampleContentFileURL = Bundle.module.url(forResource: "Example", withExtension: "md") else {
             throw CocoaError(.fileNoSuchFile)
         }
-        try FileManager.default.copyItem(at: exampleContentFileURL, to: StaticContentGeneratorTests.testPostDirectoryURL.appendingPathComponent("Example.md"))
+        try FileManager.default.copyItem(at: exampleContentFileURL, to: testPostDirectoryURL.appendingPathComponent("Example.md"))
     }
 
     override func tearDownWithError() throws {
-        try deleteExistingContents()
-    }
-    
-    func deleteExistingContents() throws {
-        if FileManager.default.fileExists(atPath: StaticContentGeneratorTests.testPostDirectoryURL.path) {
-            try FileManager.default.removeItem(at: StaticContentGeneratorTests.testPostDirectoryURL)
-        }
+        try? FileManager.default.removeItem(at: testDirectoryURL)
+        testDirectoryURL = nil
+        testPostDirectoryURL = nil
     }
     
     func testGeneratingStaticFragment() throws {
-        let generator = StaticContentGenerator(contentDirectory: StaticContentGeneratorTests.testPostDirectoryURL)
-        let markdownFile = try MarkdownFile(fileURL: StaticContentGeneratorTests.testPostDirectoryURL.appendingPathComponent("Example.md"))
+        let generator = StaticContentGenerator(contentDirectory: testPostDirectoryURL)
+        let markdownFile = try MarkdownFile(fileURL: testPostDirectoryURL.appendingPathComponent("Example.md"))
         let generatedMarkup = markdownFile.markupRepresentation(fragment: true)
         
-        self.measure {
-            do {
-                try generator.generateStaticContent(for: StaticContentGeneratorTests.testPost, with: markdownFile, fragment: true)
-                
-                let generatedFileURL = StaticContentGeneratorTests.testPostDirectoryURL.appendingPathComponent("index.html")
-                let doesGeneratedFileExist = FileManager.default.fileExists(atPath: generatedFileURL.path)
-                assert(doesGeneratedFileExist)
-                
-                let generatedFileContent = try String(contentsOf: generatedFileURL)
-                assert(generatedFileContent == generatedMarkup)
-                assert(!generatedFileContent.contains("<html>"))
-            }
-            catch {
-                XCTFail("Error generating static content: \(error)")
-            }
-        }
+        try generator.generateStaticContent(for: StaticContentGeneratorTests.testPost, with: markdownFile, fragment: true)
+        
+        let generatedFileURL = testPostDirectoryURL.appendingPathComponent("index.html")
+        XCTAssertFileExists(generatedFileURL)
+        
+        let generatedFileContent = try String(contentsOf: generatedFileURL)
+        XCTAssertEqual(generatedFileContent, generatedMarkup)
+        XCTAssertFalse(generatedFileContent.contains("<html>"))
     }
     
     func testGeneratingStaticFullyFormed() throws {
-        let generator = StaticContentGenerator(contentDirectory: StaticContentGeneratorTests.testPostDirectoryURL)
-        let markdownFile = try MarkdownFile(fileURL: StaticContentGeneratorTests.testPostDirectoryURL.appendingPathComponent("Example.md"))
+        let generator = StaticContentGenerator(contentDirectory: testPostDirectoryURL)
+        let markdownFile = try MarkdownFile(fileURL: testPostDirectoryURL.appendingPathComponent("Example.md"))
         let generatedMarkup = markdownFile.markupRepresentation(fragment: false)
         
-        self.measure {
-            do {
-                try generator.generateStaticContent(for: StaticContentGeneratorTests.testPost, with: markdownFile, fragment: false)
-                
-                let generatedFileURL = StaticContentGeneratorTests.testPostDirectoryURL.appendingPathComponent("index.html")
-                let doesGeneratedFileExist = FileManager.default.fileExists(atPath: generatedFileURL.path)
-                assert(doesGeneratedFileExist)
-                
-                let generatedFileContent = try String(contentsOf: generatedFileURL)
-                assert(generatedFileContent == generatedMarkup)
-                assert(generatedFileContent.contains("<html>"))
-                assert(generatedFileContent.contains("<title>"))
-            }
-            catch {
-                XCTFail("Error generating static content: \(error)")
-            }
-        }
+        try generator.generateStaticContent(for: StaticContentGeneratorTests.testPost, with: markdownFile, fragment: false)
+        
+        let generatedFileURL = testPostDirectoryURL.appendingPathComponent("index.html")
+        XCTAssertFileExists(generatedFileURL)
+        
+        let generatedFileContent = try String(contentsOf: generatedFileURL)
+        XCTAssertEqual(generatedFileContent, generatedMarkup)
+        XCTAssertTrue(generatedFileContent.contains("<html>"))
+        XCTAssertTrue(generatedFileContent.contains("<title>"))
+    }
+    
+    func testOverwritesExistingStaticContent() throws {
+        let generator = StaticContentGenerator(contentDirectory: testPostDirectoryURL)
+        let markdownFile = try MarkdownFile(fileURL: testPostDirectoryURL.appendingPathComponent("Example.md"))
+        let generatedFileURL = testPostDirectoryURL.appendingPathComponent("index.html")
+        try "stale content".write(to: generatedFileURL, atomically: true, encoding: .utf8)
+        
+        try generator.generateStaticContent(for: StaticContentGeneratorTests.testPost, with: markdownFile, fragment: true)
+        
+        let generatedFileContent = try String(contentsOf: generatedFileURL)
+        XCTAssertNotEqual(generatedFileContent, "stale content")
+        XCTAssertEqual(generatedFileContent, markdownFile.markupRepresentation(fragment: true))
     }
     
 }

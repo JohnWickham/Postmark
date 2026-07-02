@@ -16,11 +16,7 @@ struct PostFilesHelper {
     var contentDirectoryURL: URL
     
     func getContainingDirectory(for file: URL) -> URL? {
-        let parent = file.deletingLastPathComponent()
-        guard parent.hasDirectoryPath else {
-            return nil
-        }
-        return parent
+        return file.deletingLastPathComponent()
     }
     
     /* Whether a URL is a directory that represents a post. */
@@ -28,7 +24,9 @@ struct PostFilesHelper {
         
         if !skipDirectoryCheck {
             // 1. It's a directory
-            guard fileURL.hasDirectoryPath else {
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: fileURL.path, isDirectory: &isDirectory),
+                  isDirectory.boolValue else {
                 Log.shared.trace("File is not a directory: \(fileURL)")
                 return false
             }
@@ -37,7 +35,9 @@ struct PostFilesHelper {
         // 2. It's a direct child of the content directory
         let contentDirectoryContents = try FileManager.default.contentsOfDirectory(at: contentDirectoryURL.standardizedFileURL, includingPropertiesForKeys: [URLResourceKey.isDirectoryKey], options: [.skipsHiddenFiles, .skipsPackageDescendants, .skipsSubdirectoryDescendants])
         
-        guard contentDirectoryContents.contains(fileURL.absoluteURL) else {
+        let postFolderPath = fileURL.standardizedFileURL.path
+        let contentDirectoryPaths = contentDirectoryContents.map { $0.standardizedFileURL.path }
+        guard contentDirectoryPaths.contains(postFolderPath) else {
             Log.shared.trace("Directory \(fileURL.standardizedFileURL) is not in the content directory: \(contentDirectoryURL)")
             return false
         }
@@ -83,13 +83,17 @@ struct PostFilesHelper {
     
     // Finds the first accessible file of type "md" in the given URL, or none
     private func firstMarkdownFile(in directory: URL) -> URL? {
-        guard directory.hasDirectoryPath else {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: directory.path, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
             Log.shared.trace("Can't find a markdown file in URL that is not a directory: \(directory)")
             return nil
         }
         
         let contents = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.isRegularFileKey, .localizedNameKey], options: [.skipsHiddenFiles, .skipsPackageDescendants])
-        return contents?.first { fileURL in
+        return contents?.sorted { lhs, rhs in
+            lhs.lastPathComponent.localizedStandardCompare(rhs.lastPathComponent) == .orderedAscending
+        }.first { fileURL in
             fileURL.path.hasSuffix(".md") && FileManager.default.isReadableFile(atPath: fileURL.path)
         }
     }

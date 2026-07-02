@@ -1,286 +1,178 @@
-//
-//  GeneratorPipelineTests.swift
-//
-//
-//  Created by John Wickham on 4/24/24.
-//
-
 import XCTest
 @testable import postmark
 
-/*
 final class GeneratorPipelineTests: XCTestCase {
     
-    private var testContentDirectoryURL: URL {
-        return FileManager.default.temporaryDirectory.appendingPathComponent("content", isDirectory: true)
-    }
-    
-    private var databaseFileURL: URL {
-        let temporaryDirectory = FileManager.default.temporaryDirectory
-        return URL(fileURLWithPath: "postmark.sqlite", relativeTo: temporaryDirectory)
-    }
-    
-    private var exampleContentFileURL: URL? {
-        return Bundle.module.url(forResource: "Example", withExtension: "md")
-    }
+    private var testDirectoryURL: URL!
+    private var contentDirectoryURL: URL!
+    private var databaseFileURL: URL!
+    private var responder: FileEventResponder!
     
     override func setUpWithError() throws {
-        try? FileManager.default.removeItem(at: testContentDirectoryURL)
-        try FileManager.default.createDirectory(at: testContentDirectoryURL, withIntermediateDirectories: true)
-        
-       try DataStore.shared.open(databaseFile: databaseFileURL)
+        testDirectoryURL = try makeTemporaryDirectory()
+        contentDirectoryURL = testDirectoryURL.appendingPathComponent("content", isDirectory: true)
+        databaseFileURL = testDirectoryURL.appendingPathComponent("postmark.sqlite")
+        try FileManager.default.createDirectory(at: contentDirectoryURL, withIntermediateDirectories: true)
+        try DataStore.shared.open(databaseFile: databaseFileURL)
+        responder = FileEventResponder(contentDirectoryURL: contentDirectoryURL, shouldGenerateFragments: true)
     }
-
+    
     override func tearDownWithError() throws {
         DataStore.shared.close()
-        try FileManager.default.removeItem(at: databaseFileURL)
-        try FileManager.default.removeItem(at: testContentDirectoryURL)
+        try? FileManager.default.removeItem(at: testDirectoryURL)
+        responder = nil
+        testDirectoryURL = nil
+        contentDirectoryURL = nil
+        databaseFileURL = nil
     }
     
-    // Test that content is generated when a new post folder (containing a Markdown file) is added
-    func testAddedPostFolder() throws {
-        // Write a test post folder outside the watched directory
-        let testPostFolderTemporaryURL = FileManager.default.temporaryDirectory.appendingPathComponent("test-post", isDirectory: true)
-        try FileManager.default.createDirectory(at: testPostFolderTemporaryURL, withIntermediateDirectories: true)
-        // Copy the example Markdown file into the test post folder
+    func testCreatedPostFolderGeneratesFragmentAndDatabaseRow() throws {
+        let post = try writePost(
+            in: contentDirectoryURL,
+            folderName: "hello-world",
+            markdown: """
+            # Hello World
+            
+            This is the body of the post.
+            """
+        )
         
-        guard let exampleContentFileURL = exampleContentFileURL else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-        try FileManager.default.copyItem(at: exampleContentFileURL, to: testPostFolderTemporaryURL.appendingPathComponent("test-post.md"))
+        responder.handle(FileChangeEvent(path: post.postDirectory.path, kind: .created))
         
-        let countOfDatabasePostsBeforeProcessing = try DataStore.shared.getCountOfPosts()
+        let generatedFileURL = post.postDirectory.appendingPathComponent("index.html")
+        XCTAssertFileExists(generatedFileURL)
+        XCTAssertEqual(try String(contentsOf: generatedFileURL), "<p>This is the body of the post.</p>")
         
-        let processingDelayExpectation = expectation(description: "Wait for processing")
-        
-        // Start watching the content directory
-        let responder = FileEventResponder(contentDirectoryURL: testContentDirectoryURL, shouldGenerateFragments: true)
-        let monitor = try FileMonitor(directory: testContentDirectoryURL, delegate: responder, options: nil)
-        try monitor.start()
-        
-        // Move the test post folder inside the watched content directory
-        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true)
-        try FileManager.default.moveItem(at: testPostFolderTemporaryURL, to: testPostFolderInContentDirectoryURL)
-        
-        // Wait for processing to finish (?)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-            processingDelayExpectation.fulfill()
-        }
-        wait(for: [processingDelayExpectation], timeout: 10)
-        
-        // Assert that an HTML fragment file was produced in the tset post folder
-        let generatedContentFileURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true).appendingPathComponent("index.html")
-        assert(FileManager.default.fileExists(atPath: generatedContentFileURL.path))
-        
-        // Assert that a post row was added to the database
-        let countOfDatabasePostsAfterProcessing = try DataStore.shared.getCountOfPosts()
-        assert(countOfDatabasePostsAfterProcessing == countOfDatabasePostsBeforeProcessing + 1)
+        let storedPost = try XCTUnwrap(DataStore.shared.getPost(with: "hello-world"))
+        XCTAssertEqual(storedPost.title, "Hello World")
+        XCTAssertEqual(storedPost.previewContent, "This is the body of the post.")
+        XCTAssertEqual(storedPost.hasGeneratedContent, true)
     }
     
-    // Test that a content folder with a publish status directive is processed properly
-    func testAddPostDraftFolder() throws {
+    func testModifiedPostSourceRegeneratesFragment() throws {
+        let post = try writePost(
+            in: contentDirectoryURL,
+            folderName: "changing-post",
+            markdown: """
+            # Changing Post
+            
+            Original body.
+            """
+        )
+        responder.handle(FileChangeEvent(path: post.postDirectory.path, kind: .created))
+        
+        try """
+        # Changing Post
+        
+        Updated body.
+        """.write(to: post.markdownFile, atomically: true, encoding: .utf8)
+        responder.handle(FileChangeEvent(path: post.markdownFile.path, kind: .modified))
+        
+        let generatedFileURL = post.postDirectory.appendingPathComponent("index.html")
+        XCTAssertEqual(try String(contentsOf: generatedFileURL), "<p>Updated body.</p>")
+        
+        let storedPost = try XCTUnwrap(DataStore.shared.getPost(with: "changing-post"))
+        XCTAssertEqual(storedPost.previewContent, "Updated body.")
     }
     
-    // Test that content is generated when a new Markdown file is added to an existing folder
-    func testAddedPostFile() throws {
-        // Create a test post folder inside the watched content directory
-        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true)
-        try FileManager.default.createDirectory(at: testPostFolderInContentDirectoryURL, withIntermediateDirectories: true)
+    func testRemovedPostSourceDeletesDatabaseRow() throws {
+        let post = try writePost(
+            in: contentDirectoryURL,
+            folderName: "deleted-source",
+            markdown: """
+            # Deleted Source
+            
+            Body.
+            """
+        )
+        responder.handle(FileChangeEvent(path: post.postDirectory.path, kind: .created))
+        XCTAssertNotNil(try DataStore.shared.getPost(with: "deleted-source"))
         
-        let countOfDatabasePostsBeforeProcessing = try DataStore.shared.getCountOfPosts()
+        try FileManager.default.removeItem(at: post.markdownFile)
+        responder.handle(FileChangeEvent(path: post.markdownFile.path, kind: .removed))
         
-        let processingDelayExpectation = expectation(description: "Wait for processing")
-        
-        // Start watching the content directory
-        let responder = FileEventResponder(contentDirectoryURL: testContentDirectoryURL, shouldGenerateFragments: true)
-        #if os(Linux)
-        let monitor = try FileMonitor(directory: testContentDirectoryURL, delegate: responder, options: [.allEvents])
-        #else
-        let monitor = try FileMonitor(directory: testContentDirectoryURL, delegate: responder, options: [.markSelf])
-        #endif
-        
-        try monitor.start()
-        
-        // Move the sample content file into the post folder
-        guard let exampleContentFileURL = exampleContentFileURL else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-        try FileManager.default.copyItem(at: exampleContentFileURL, to: testPostFolderInContentDirectoryURL.appendingPathComponent("test-post.md"))
-        
-        // Wait for processing to finish
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-            processingDelayExpectation.fulfill()
-        }
-        wait(for: [processingDelayExpectation], timeout: 10)
-        
-        // Assert that an HTML fragment file was produced in the tset post folder
-        let generatedContentFileURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true).appendingPathComponent("index.html")
-        assert(FileManager.default.fileExists(atPath: generatedContentFileURL.path))
-        
-        // Assert that a post row was added to the database
-        let countOfDatabasePostsAfterProcessing = try DataStore.shared.getCountOfPosts()
-        assert(countOfDatabasePostsAfterProcessing == countOfDatabasePostsBeforeProcessing + 1)
+        XCTAssertNil(try DataStore.shared.getPost(with: "deleted-source"))
     }
     
-    // Test that a content file added directly to the watched content directory is moved into a proper post folder and processed properly
-    func testAddedOrphanContentFile() {
+    func testRemovedPostFolderDeletesDatabaseRow() throws {
+        let post = try writePost(
+            in: contentDirectoryURL,
+            folderName: "deleted-folder",
+            markdown: """
+            # Deleted Folder
+            
+            Body.
+            """
+        )
+        responder.handle(FileChangeEvent(path: post.postDirectory.path, kind: .created))
+        XCTAssertNotNil(try DataStore.shared.getPost(with: "deleted-folder"))
         
+        try FileManager.default.removeItem(at: post.postDirectory)
+        responder.handle(FileChangeEvent(path: post.postDirectory.path, kind: .removed))
+        
+        XCTAssertNil(try DataStore.shared.getPost(with: "deleted-folder"))
     }
     
-    func testModifiedPostFile() throws {
-        // Create a test post folder inside the watched content directory
-        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true)
-        try FileManager.default.createDirectory(at: testPostFolderInContentDirectoryURL, withIntermediateDirectories: true)
+    func testNonPostFilesAreIgnored() throws {
+        let unrelatedFile = contentDirectoryURL.appendingPathComponent("notes.txt")
+        try "Not Markdown".write(to: unrelatedFile, atomically: true, encoding: .utf8)
         
-        // Move the sample content file into the post folder
-        guard let exampleContentFileURL = exampleContentFileURL else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-        let exampleContentFileInPostFolderURL = testPostFolderInContentDirectoryURL.appendingPathComponent("test-post.md")
-        try FileManager.default.copyItem(at: exampleContentFileURL, to: exampleContentFileInPostFolderURL)
+        responder.handle(FileChangeEvent(path: unrelatedFile.path, kind: .created))
         
-        let artificialDelayExpectation = expectation(description: "Artifically delay so that test-setup FSEvents aren't handled.")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-            artificialDelayExpectation.fulfill()
-        }
-        wait(for: [artificialDelayExpectation], timeout: 10)
-        
-        let countOfDatabasePostsBeforeProcessing = try DataStore.shared.getCountOfPosts()
-        
-        let processingDelayExpectation = expectation(description: "Wait for processing")
-        
-        // Start watching the content directory
-        let responder = FileEventResponder(contentDirectoryURL: testContentDirectoryURL, shouldGenerateFragments: true)
-        let monitor = try FileMonitor(directory: testContentDirectoryURL, delegate: responder, options: nil)
-        try monitor.start()
-        
-        let contentToAppend = UUID().uuidString;
-        let fileHandle = try FileHandle(forWritingTo: exampleContentFileInPostFolderURL)
-        try fileHandle.seekToEnd()
-        try fileHandle.write(contentsOf: contentToAppend.data(using: .utf8)!)
-        try fileHandle.close()
-        
-        // Wait for processing to finish
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            processingDelayExpectation.fulfill()
-        }
-        wait(for: [processingDelayExpectation], timeout: 10)
-        
-        // Assert that an HTML fragment file was produced in the tset post folder
-        let generatedContentFileURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true).appendingPathComponent("index.html")
-        assert(FileManager.default.fileExists(atPath: generatedContentFileURL.path))
-        
-        let generatedContentFileText = try String(contentsOf: generatedContentFileURL, encoding: .utf8)
-        assert(generatedContentFileText.contains(contentToAppend))
-        
-        // Assert that a post row was added to the database
-        let countOfDatabasePostsAfterProcessing = try DataStore.shared.getCountOfPosts()
-        assert(countOfDatabasePostsAfterProcessing == countOfDatabasePostsBeforeProcessing + 1)
+        XCTAssertEqual(try DataStore.shared.getCountOfPosts(), 0)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: contentDirectoryURL.appendingPathComponent("index.html").path))
     }
     
-    // Test that the post is removed from the database when a post file is deleted (but the directory remains)
-    func testPostFileDeleted() throws {
-        // Create a test post folder inside the watched content directory
-        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true)
-        try FileManager.default.createDirectory(at: testPostFolderInContentDirectoryURL, withIntermediateDirectories: true)
+    func testFolderPublishStatusSuffixIsStored() throws {
+        let post = try writePost(
+            in: contentDirectoryURL,
+            folderName: "future-post.draft",
+            markdown: """
+            # Future Post
+            
+            Body.
+            """
+        )
         
-        let countOfDatabasePostsBeforeProcessing = try DataStore.shared.getCountOfPosts()
+        responder.handle(FileChangeEvent(path: post.postDirectory.path, kind: .created))
         
-        let addProcessingDelayExpectation = expectation(description: "Wait for processing of added file")
-        let deleteProcessingDelayExpectation = expectation(description: "Wait for processing of removed file")
-        
-        // Start watching the content directory
-        let responder = FileEventResponder(contentDirectoryURL: testContentDirectoryURL, shouldGenerateFragments: true)
-        let monitor = try FileMonitor(directory: testContentDirectoryURL, delegate: responder, options: nil)
-        try monitor.start()
-        
-        // Move the sample content file into the post folder
-        guard let exampleContentFileURL = exampleContentFileURL else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-        try FileManager.default.copyItem(at: exampleContentFileURL, to: testPostFolderInContentDirectoryURL.appendingPathComponent("test-post.md"))
-        
-        // Wait for processing to finish
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-            addProcessingDelayExpectation.fulfill()
-        }
-        wait(for: [addProcessingDelayExpectation], timeout: 10)
-        
-        // Assert that an HTML fragment file was produced in the tset post folder
-        let generatedContentFileURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true).appendingPathComponent("index.html")
-        assert(FileManager.default.fileExists(atPath: generatedContentFileURL.path))
-        
-        // Assert that a post row was added to the database
-        let countOfDatabasePostsAfterProcessing = try DataStore.shared.getCountOfPosts()
-        assert(countOfDatabasePostsAfterProcessing == countOfDatabasePostsBeforeProcessing + 1)
-        
-        // Delete the sample content file from the post folder
-        try FileManager.default.removeItem(at: exampleContentFileURL)
-        
-        // Check that the post is removed from the database
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            deleteProcessingDelayExpectation.fulfill()
-        }
-        wait(for: [deleteProcessingDelayExpectation], timeout: 10)
-        
-        let countOfDatabasePostsAfterDeleting = try DataStore.shared.getCountOfPosts()
-        assert(countOfDatabasePostsAfterDeleting == countOfDatabasePostsAfterProcessing - 1)
-        
+        let storedPost = try XCTUnwrap(DataStore.shared.getPost(with: "future-post"))
+        XCTAssertEqual(storedPost.publishStatus, .draft)
     }
     
-    // Test that the post is removed from teh databse when a post folder (containing a Markdown file) is deleted
-    func testPostFolderDeleted() throws {
-        // Create a test post folder inside the watched content directory
-        let testPostFolderInContentDirectoryURL = testContentDirectoryURL.appendingPathComponent("test-post", isDirectory: true)
-        try FileManager.default.createDirectory(at: testPostFolderInContentDirectoryURL, withIntermediateDirectories: true)
+    func testDatabaseOnlyProcessingUpdatesDatabaseWithoutWritingStaticContent() throws {
+        let post = try writePost(
+            in: contentDirectoryURL,
+            folderName: "db-only",
+            markdown: """
+            # Database Only
+            
+            Body.
+            """
+        )
         
-        // Move the sample content file into the post folder
-        guard let exampleContentFileURL = exampleContentFileURL else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-        let exampleContentFileInPostFolderURL = testPostFolderInContentDirectoryURL.appendingPathComponent("test-post.md")
+        let processingQueue = try PostProcessingQueue(postDirectory: post.postDirectory, in: contentDirectoryURL, options: [.databaseOnly])
+        try processingQueue.process()
         
-        let artificialDelayExpectation = expectation(description: "Artifically delay so that test-setup FSEvents aren't handled.")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-            artificialDelayExpectation.fulfill()
-        }
-        wait(for: [artificialDelayExpectation], timeout: 10)
-        
-        let countOfDatabasePostsBeforeProcessing = try DataStore.shared.getCountOfPosts()
-        
-        let addProcessingDelayExpectation = expectation(description: "Wait for processing after adding")
-        let deleteProcessingDelayExpectatino = expectation(description: "Wait for processing after deleting")
-        
-        // Start watching the content directory
-        let responder = FileEventResponder(contentDirectoryURL: testContentDirectoryURL, shouldGenerateFragments: true)
-        let monitor = try FileMonitor(directory: testContentDirectoryURL, delegate: responder, options: nil)
-        try monitor.start()
-        
-        try FileManager.default.copyItem(at: exampleContentFileURL, to: exampleContentFileInPostFolderURL)
-        
-        // Wait for processing to finish
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            addProcessingDelayExpectation.fulfill()
-        }
-        wait(for: [addProcessingDelayExpectation], timeout: 10)
-        
-        // Assert that a post row was added to the database
-        let countOfDatabasePostsAfterProcessing = try DataStore.shared.getCountOfPosts()
-        assert(countOfDatabasePostsAfterProcessing == countOfDatabasePostsBeforeProcessing + 1)
-        
-        // Delete the post folder
-        try FileManager.default.removeItem(at: testPostFolderInContentDirectoryURL)
-        
-        // Wait for processing to finish
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            deleteProcessingDelayExpectatino.fulfill()
-        }
-        wait(for: [deleteProcessingDelayExpectatino], timeout: 10)
-        
-        let countOfDatabasePostsAfterDeleting = try DataStore.shared.getCountOfPosts()
-        assert(countOfDatabasePostsAfterDeleting == countOfDatabasePostsAfterProcessing - 1)
-        
+        XCTAssertNotNil(try DataStore.shared.getPost(with: "db-only"))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: post.postDirectory.appendingPathComponent("index.html").path))
     }
     
+    func testDryRunDoesNotWriteStaticContentOrDatabaseRows() throws {
+        let post = try writePost(
+            in: contentDirectoryURL,
+            folderName: "dry-run",
+            markdown: """
+            # Dry Run
+            
+            Body.
+            """
+        )
+        
+        let processingQueue = try PostProcessingQueue(postDirectory: post.postDirectory, in: contentDirectoryURL, options: [.dryRun])
+        try processingQueue.process()
+        
+        XCTAssertNil(try DataStore.shared.getPost(with: "dry-run"))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: post.postDirectory.appendingPathComponent("index.html").path))
+    }
 }
-*/

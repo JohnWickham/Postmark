@@ -29,6 +29,7 @@ class PostProcessingQueue {
         
         static var dryRun = ProcessingOptions(rawValue: 1)
         static var generateFragments = ProcessingOptions(rawValue: 2)
+        static var databaseOnly = ProcessingOptions(rawValue: 4)
     }
     
     private var contentDirectory: URL
@@ -39,6 +40,7 @@ class PostProcessingQueue {
     
     private var shouldCommitChanges: Bool
     private var shouldGenerateFragments: Bool
+    private var shouldProcessDatabaseOnly: Bool
     
     public init(postDirectory: URL, in contentDirectory: URL, options: ProcessingOptions = []) throws {
         self.contentDirectory = contentDirectory
@@ -46,6 +48,7 @@ class PostProcessingQueue {
         self.staticContentGenerator = StaticContentGenerator(contentDirectory: contentDirectory)
         self.shouldCommitChanges = !options.contains(.dryRun)
         self.shouldGenerateFragments = options.contains(.generateFragments)
+        self.shouldProcessDatabaseOnly = options.contains(.databaseOnly)
         
         guard let sourceContentFileURL = filesHelper.getContentSourceFile(forPostAt: postDirectory) else {
             throw PostFileAnalysisError.noContentSourceFile(inDirectory: postDirectory)
@@ -60,6 +63,7 @@ class PostProcessingQueue {
         self.staticContentGenerator = StaticContentGenerator(contentDirectory: contentDirectory)
         self.shouldCommitChanges = !options.contains(.dryRun)
         self.shouldGenerateFragments = options.contains(.generateFragments)
+        self.shouldProcessDatabaseOnly = options.contains(.databaseOnly)
         
         self.tasks = []
         // FIXME: Mapping postDirectories to makeProcessingTask(for: in:) captured self.tasks before it was initialized somehow?
@@ -108,6 +112,11 @@ class PostProcessingQueue {
     
     // Method for generating static content files
     private func generateStaticContent(for post: Post, with markdownDocument: MarkdownFile) throws {
+        if shouldProcessDatabaseOnly {
+            Log.shared.debug("Skip static content generation for database-only processing: \(post.slug)")
+            return
+        }
+        
         if shouldCommitChanges {
             try staticContentGenerator.generateStaticContent(for: post, with: markdownDocument, fragment: shouldGenerateFragments, overwriteExisting: true)
         }

@@ -19,14 +19,14 @@ final class URLParsingTests: XCTestCase {
         
         let pathToDBFileInCurrentDirectory = "postmark.sqlite"
         let relative = URL(fileURLWithPath: pathToDBFileInCurrentDirectory, relativeTo: simulatedCurrentDirectoryURL)
-        assert(relative.absoluteString == simulatedCurrentDirectoryURL
+        XCTAssertEqual(relative.absoluteString, simulatedCurrentDirectoryURL
             .appendingPathComponent("postmark.sqlite")
             .absoluteString
         )
         
         let pathToDBFileWithURLRelativeToCurrentDirectory = "../postmark.sqlite"
         let relative2 = URL(fileURLWithPath: pathToDBFileWithURLRelativeToCurrentDirectory, relativeTo: simulatedCurrentDirectoryURL)
-        assert(relative2.absoluteString == simulatedCurrentDirectoryURL
+        XCTAssertEqual(relative2.absoluteString, simulatedCurrentDirectoryURL
             .deletingLastPathComponent()
             .appendingPathComponent("postmark.sqlite")
             .absoluteString
@@ -35,7 +35,7 @@ final class URLParsingTests: XCTestCase {
         let pathToDBFileAsRootPath = "/Users/john/Postmark/tests/postmark.sqlite"
         let absoluteURLOfDBFile = URL(fileURLWithPath: pathToDBFileAsRootPath)
         let relative3 = URL(fileURLWithPath: pathToDBFileAsRootPath, relativeTo: simulatedCurrentDirectoryURL)
-        assert(relative3.absoluteString == absoluteURLOfDBFile.absoluteString)
+        XCTAssertEqual(relative3.absoluteString, absoluteURLOfDBFile.absoluteString)
     }
     
 }

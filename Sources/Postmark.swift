@@ -118,6 +118,9 @@ struct Regenerate: ParsableCommand {
             if generateFragments {
                 processingOptions.insert(.generateFragments)
             }
+            if processDatabaseOnly {
+                processingOptions.insert(.databaseOnly)
+            }
             let processingQueue = try PostProcessingQueue(postDirectories: allPostDirectories, in: contentDirectoryURL, options: processingOptions)
             try processingQueue.process()
 
