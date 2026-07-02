@@ -17,7 +17,7 @@ struct PostFilesHelper {
     
     func getContainingDirectory(for file: URL) -> URL? {
         let parent = file.deletingLastPathComponent()
-        guard parent.isDirectory else {
+        guard parent.hasDirectoryPath else {
             return nil
         }
         return parent
@@ -28,7 +28,7 @@ struct PostFilesHelper {
         
         if !skipDirectoryCheck {
             // 1. It's a directory
-            guard fileURL.isDirectory else {
+            guard fileURL.hasDirectoryPath else {
                 Log.shared.trace("File is not a directory: \(fileURL)")
                 return false
             }
@@ -83,7 +83,7 @@ struct PostFilesHelper {
     
     // Finds the first accessible file of type "md" in the given URL, or none
     private func firstMarkdownFile(in directory: URL) -> URL? {
-        guard directory.isDirectory else {
+        guard directory.hasDirectoryPath else {
             Log.shared.trace("Can't find a markdown file in URL that is not a directory: \(directory)")
             return nil
         }

@@ -77,17 +77,14 @@ public class Post: Codable {
         }
         
         let sourceFileAttributes = try FileManager.default.attributesOfItem(atPath: contentSourceFileURL.path)
-        guard let sourceFileCreationDate = sourceFileAttributes[FileAttributeKey.creationDate] as? Date else {
-            throw PostFileAnalysisError.noCreationDate(path: directory.path)
-        }
+        let sourceFileUpdatedDate = sourceFileAttributes[FileAttributeKey.modificationDate] as? Date
+        let sourceFileCreationDate = sourceFileAttributes[FileAttributeKey.creationDate] as? Date ?? sourceFileUpdatedDate ?? Date()
         
         if let staticContentFile = filesHelper.makeStaticContentFileURL(forPostAt: directory),
            FileManager.default.fileExists(atPath: staticContentFile.path) {
             self.hasGeneratedContent = true
         }
         
-        let sourceFileUpdatedDate = sourceFileAttributes[FileAttributeKey.modificationDate] as? Date
-                
         guard let slug = try? filesHelper.makePostSlug(for: directory) else {
             throw PostFileAnalysisError.noSuitableSlug(forDirectory: directory)
         }

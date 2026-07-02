@@ -45,10 +45,15 @@ public struct StaticContentGenerator {
     }
     
     private func deleteExistingStaticContentFile(at fileURL: URL) throws {
-        guard FileManager.default.fileExists(atPath: fileURL.path),
-              FileManager.default.isDeletableFile(atPath: fileURL.path) else {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return
+        }
+        
+        guard FileManager.default.isDeletableFile(atPath: fileURL.path) else {
             Log.shared.error("Existing static content file could not be deleted. Nothing will be generated.")
             return
         }
+        
+        try FileManager.default.removeItem(at: fileURL)
     }
 }

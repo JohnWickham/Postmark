@@ -1,11 +1,18 @@
 import Foundation
 import ArgumentParser
-import FileMonitor
 import Logging
 
 @main
 struct Postmark: ParsableCommand {
     static var configuration = CommandConfiguration(abstract: "A lightweight CMS for publishing Markdown-based hypertext.", subcommands: [Regenerate.self, Watch.self])
+}
+
+struct RuntimeError: Error, CustomStringConvertible {
+    var description: String
+    
+    init(_ description: String) {
+        self.description = description
+    }
 }
 
 struct Watch: ParsableCommand {
@@ -36,15 +43,25 @@ struct Watch: ParsableCommand {
         do {
             try DataStore.shared.open(databaseFile: databaseFileURL)
             let changeHandler = FileEventResponder(contentDirectoryURL: contentDirectoryURL, shouldGenerateFragments: generateFragments)
-            let monitor = try FileMonitor(directory: contentDirectoryURL, delegate: changeHandler, options: nil)
-            try monitor.start()
+            #if os(macOS)
+            let watcher: FileWatcher = FSEventsWatcher(path: contentDirectoryURL.path)
+            #elseif os(Linux)
+            let watcher: FileWatcher = InotifyWatcher(path: contentDirectoryURL.path)
+            #else
+            throw RuntimeError("File watching is not supported on this platform.")
+            #endif
+            watcher.onEvent = { event in
+                changeHandler.handle(event)
+            }
+            watcher.startWatching()
             Log.shared.info("Postmark is watching for changes in \(contentDirectoryURL.absoluteURL.path)")
+            withExtendedLifetime(watcher) {
+                RunLoop.main.run()
+            }
         }
         catch {
             Postmark.exit(withError: error)
         }
-        
-        RunLoop.main.run()
     }
     
 }
